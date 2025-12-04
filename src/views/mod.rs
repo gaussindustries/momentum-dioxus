@@ -16,3 +16,12 @@ pub use fincalc::FinCalcView;
 
 mod navbar;
 pub use navbar::NavbarLayout;
+
+mod health;
+pub use health::HealthView;
+
+mod goals;
+pub use goals::GoalView;
+
+mod jax_brain;
+pub use jax_brain::JaxBrainView;

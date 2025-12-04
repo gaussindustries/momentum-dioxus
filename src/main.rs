@@ -2,7 +2,7 @@
 // need dioxus
 use dioxus::prelude::*;
 
-use views::{Overview, NavbarLayout, FinCalcView};
+use views::*;
 /// Define a components module that contains all shared components for our app.
 mod components;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
@@ -23,9 +23,23 @@ enum Route {
         // the component for that route will be rendered. The component name that is rendered defaults to the variant name.
         #[route("/")]
         Overview {},
-		
+
+		#[route("/Goals")]
+        GoalView {},
+				
+		#[route("/Health")]	
+		HealthView {},
+
 		#[route("/FinCalc")]
         FinCalcView {},
+
+		#[route("/JaxBrain")]
+        JaxBrainView {},
+
+	//#[end_layout] 
+    //#[layout()]
+	// you must add a different layout in order to use end_layout
+
         // The route attribute can include dynamic parameters that implement [`std::str::FromStr`] and [`std::fmt::Display`] with the `:` syntax.
         // In this case, id will match any integer like `/blog/123` or `/blog/-456`.
         //#[route("/blog/:id")]

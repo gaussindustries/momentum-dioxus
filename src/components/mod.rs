@@ -15,3 +15,12 @@ pub mod navbar;
 
 mod fin_calc;
 pub use fin_calc::FinCalc;
+
+mod health;
+pub use health::Health;
+
+mod goals;
+pub use goals::Goals;
+
+mod jax_brain;
+pub use jax_brain::JaxBrain;

@@ -8,7 +8,7 @@ pub fn NavbarLayout() -> Element {
 		document::Link { rel: "stylesheet", href: NAVBAR_CSS }
 
 		div {
-			class: "p-2 bg-primary-color text-secondary-color flex justify-between",
+			class: "p-2 ",
 
 			Navbar {
 				NavbarNav {
@@ -19,19 +19,50 @@ pub fn NavbarLayout() -> Element {
 							index: 0usize,
 							value: "home".to_string(),
 							to: Route::Overview {  },
-							"Overview"
+							div{class:"text-center",
+								"Overview"
+							}
 						}
 						NavbarItem { 
 							index: 1usize,
+							value: "goals".to_string(),
+							to: Route::GoalView {  },
+							div{class:"text-center",
+								"Goals 🎯"
+							}
+						}
+						
+						NavbarItem {
+							index: 2usize,
+							value: "health".to_string(),
+							to: Route::HealthView {  },
+							div{class:"text-center",
+								"Health 💪"
+							}
+						}
+						NavbarItem { 
+							index: 3usize,
 							value: "fincalc".to_string(),
 							to: Route::FinCalcView {  },
-							"Wealth 💸"
+							div{class:"text-center",
+								"Wealth 💸"
+							}
+						}
+						NavbarItem { 
+							index: 3usize,
+							value: "jaxbrain".to_string(),
+							to: Route::JaxBrainView {  },
+							div{ class:"flex justify-center gap-2 items-center",
+								"Jax Brain"
+								img {class:"h-[30px]", src: asset! { "assets/images/digital_brain.png"}}
+							}
 						}
 					}
 				}
 			}
 		}
-
-		Outlet::<Route> {}
+		div { class:"flex justify-center",
+			Outlet::<Route> {}
+		}
 	}
 }

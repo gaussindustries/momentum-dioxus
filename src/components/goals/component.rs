@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn FinCalc(
+pub fn Goals(
     // bool with a default: if you don't pass it, it becomes false
     #[props(default)]
     overview: bool,
@@ -15,9 +15,9 @@ pub fn FinCalc(
 
         div {
             if overview {
-                "Overview mode FINCALC"
+                "Overview mode Goals"
             } else {
-                "Detail mode FINCALC"
+                "Detail mode Goals"
             }
         }
     }
