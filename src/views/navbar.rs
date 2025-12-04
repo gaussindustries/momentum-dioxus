@@ -49,7 +49,7 @@ pub fn NavbarLayout() -> Element {
 							}
 						}
 						NavbarItem { 
-							index: 3usize,
+							index: 4usize,
 							value: "jaxbrain".to_string(),
 							to: Route::JaxBrainView {  },
 							div{ class:"flex justify-center gap-2 items-center",
