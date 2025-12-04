@@ -13,12 +13,47 @@ pub fn FinCalc(
     rsx! {
         document::Link { rel: "stylesheet", href: asset!("./style.css") }
 
-        div {
-            if overview {
-                "Overview mode FINCALC"
-            } else {
-                "Detail mode FINCALC"
-            }
-        }
+		if overview {
+			Overview {}
+		} else {
+			Detailed {}
+		}
     }
+}
+
+
+/*
+	show graph of historical data
+	data {
+		all:
+		assets:
+		expenses:
+		income:
+	
+	}
+
+*/
+
+
+fn Detailed () -> Element {
+	rsx!{
+        "Yessum"
+
+	}
+}
+
+/*
+	could very well be for injecting information quickly rather than
+	having to dive into the full detailed version of the program,
+	or rather just call how "things are going", the graphical aspect
+
+	snapshot of assets
+
+*/
+
+fn Overview () -> Element {
+	rsx!{
+        "Overview mode FINCALC"
+
+	}
 }
