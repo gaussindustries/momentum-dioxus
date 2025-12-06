@@ -1,5 +1,25 @@
-[
-	{
-		
-	}
-]
+{
+  "assets": [
+    {
+      "id": "uuid",
+      "name": "checking_account",
+      "value": 1200
+    }
+  ],
+  "income": [
+    {
+      "id": "uuid",
+      "date": "2025-03-01",
+      "source": "salary",
+      "amount": 4200
+    }
+  ],
+  "expenses": [
+    {
+      "id": "uuid",
+      "date": "2025-03-02",
+      "category": "food",
+      "amount": 45.99
+    }
+  ]
+}

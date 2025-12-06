@@ -1,0 +1,112 @@
+{
+	"alphabetical page starts" : {
+		"a" : 29,
+		"b" : 0,
+		"c" : 0,
+		"d" : 0,
+		"e" : 0,
+		"f" : 0,
+		"g" : 0,
+		"h" : 0,
+		"i" : 0,
+		"j" : 0,
+		"k" : 0,
+		"l" : 0,
+		"m" : 0,
+		"n" : 0,
+		"o" : 1204,
+		"p" : 1245,
+		"q" : 0,
+		"r" : 0,
+		"s" : 0,
+		"t" : 0,
+		"u" : 0,
+		"v" : 0,
+		"w" : 0,
+		"x" : 0,
+		"y" : 0,
+		"z" : 0
+	},
+	"abbreviations": {
+		"abbr" : "abbreviated as; abbreviation for",
+		"adj" : "adjective",
+		"adv" : "adverb",
+		"BrE" : "British English",
+		"ca" : "circa",
+		"cap" : "capitalized",
+		"cf" : "(confer) compare with",
+		"ch" : "chapter",
+		"conj" : "conjunciton",
+		"ed" : "edition; editor",
+		"e.g." : "(exempli gratia) for example",
+		"esp" : "especially",
+		"et seq" : "(et sequentes) and those (pages or section) that follow",
+		"fr" : "from; derived from",
+		"id" : "(idem) in the same work",
+		"i.e." : "(id est) that is",
+		"l.c." : "lowercase",
+		"n" : "noun; note",
+		"no" : "number",
+		"p" : "paragraph",
+		"pl" : "plural",
+		"pp" : "pages",
+		"p.pl" : "past participle",
+		"prep" : "preposition",
+		"pt" : "part",
+		"repr" : "reprinted",
+		"rev" : "revised by; revision",
+		"s" : "section",
+		"sing" : "singular",
+		"specif" : "specifically",
+		"usu" : "usually",
+		"vb" : "verb"
+	},
+	"definitions" : {
+		"affadavit" : {
+			"found on page": 94,
+			"time period": "16c",
+			"definition" : "A voluntary declaration of facts written down and sworn to by the declarant before an officer authorized to administer oaths.",
+			"usage" : "A great deal of evidence is submitted by affidavit, esp. in pretrial matters such as summary-judgment motions",
+			"e.g." : [
+				
+			],
+			"related notable words": [
+				"voluntary",
+				"declaration",
+				"fact",
+				"sworn",
+				"declarant",
+				"officer",
+				"summary-judgment motions"
+			]
+		},
+		"officer" : {
+			"found on page": 1221,
+			"time period": "14c",
+			"definition" : "A person who holds an office of trust, authority, or command",
+			"usage" : "In public affairs, the term refers esp to a person holding public office under a nation, state, or local government, and authorized by that government to excercise some specific fucntion. In coporate law, the term refers esp to a person elected daily operation of a corporation, such as a CEO, president, secretary, or tresurer.",
+			"e.g." : [
+				
+			],
+			"related notable words": [
+				"person",
+				"trust",
+				"authority",
+				"command"
+			]
+		},
+		"example" : {
+			"found on page": 0,
+			"time period": "16c",
+			"definition" : "",
+			"usage" : "",
+			"e.g." : [
+				
+			],
+			"related notable words": [
+				"",
+				""
+			]
+		}
+	}
+}

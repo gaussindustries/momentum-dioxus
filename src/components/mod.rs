@@ -24,3 +24,6 @@ pub use goals::Goals;
 
 mod jax_brain;
 pub use jax_brain::JaxBrain;
+
+mod graph_generator;
+pub use graph_generator::GraphGenerator;pub mod select;

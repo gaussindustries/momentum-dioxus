@@ -35,6 +35,8 @@ pub fn FinCalc(
 */
 
 
+
+
 fn Detailed () -> Element {
 	rsx!{
         "Yessum"
@@ -57,3 +59,4 @@ fn Overview () -> Element {
 
 	}
 }
+

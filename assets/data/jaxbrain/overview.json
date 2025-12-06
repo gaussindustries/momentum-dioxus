@@ -1,0 +1,11 @@
+{
+  "collections": [
+    {
+      "id": "black_law_dictionary",
+      "title": "Black's Law Dictionary Notes",
+      "template": "dictionary",
+      "file": "blacksLaw/ninthEd.json",
+      "tags": ["law", "definitions", "black's"]
+    }
+  ]
+}
