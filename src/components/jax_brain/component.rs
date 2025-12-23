@@ -12,6 +12,9 @@ use crate::models::jaxBrain::templates::dictionary::{
     DictionaryFile, build_graph_from_dictionary, layout_dictionary_graph, load_dictionary_from_path, save_dictionary_to_path
 };
 
+use crate::models::jaxBrain::templates::dictionary::{DefinitionEntry};
+
+
 // Default dev path – adjust as needed
 const DEFAULT_DICT_PATH: &str = "assets/data/jaxbrain/blacksLaw/ninthEd.json";
 
@@ -57,6 +60,132 @@ pub fn JaxBrain(
             }
         }
     });
+
+	let mut edit_open = use_signal(|| false);
+	let mut edit_term_key = use_signal(|| None::<String>);
+
+	// draft fields for the editor UI
+	let mut edit_definition = use_signal(|| "".to_string());
+	let mut edit_usage = use_signal(|| "".to_string());
+	let mut edit_page = use_signal(|| 0_i32);
+	let mut edit_time_period = use_signal(|| "".to_string());
+
+	let on_add_term = {
+    let mut dict_state = dict_state.clone();
+    let mut status = status.clone();
+
+		move |_| {
+			let Some(mut dict) = dict_state.read().clone() else {
+				status.set(Some("Load a dictionary first.".to_string()));
+				return;
+			};
+
+			// generate unique key
+			let mut i = 1;
+			let mut key = format!("new_term_{i}");
+			while dict.definitions.contains_key(&key) {
+				i += 1;
+				key = format!("new_term_{i}");
+			}
+
+			dict.definitions.insert(key.clone(), DefinitionEntry {
+				found_on_page: 0,
+				time_period: "".to_string(),
+				definition: "".to_string(),
+				usage: "".to_string(),
+				examples: vec![],
+				related_terms: vec![],
+			});
+
+			dict_state.set(Some(dict));
+			status.set(Some(format!("Added term: {key}")));
+		}
+	};
+
+	// Open editor for selected node (expects "term:xyz")
+		let on_edit_selected = {
+			let mut dict_state = dict_state.clone();
+			let mut status = status.clone();
+
+			let mut edit_open = edit_open.clone();
+			let mut edit_term_key = edit_term_key.clone();
+			let mut edit_definition = edit_definition.clone();
+			let mut edit_usage = edit_usage.clone();
+			let mut edit_page = edit_page.clone();
+			let mut edit_time_period = edit_time_period.clone();
+
+			move |sel: Option<String>| {
+				let Some(sel_id) = sel else {
+					status.set(Some("No node selected.".to_string()));
+					return;
+				};
+
+				// Only edit dictionary terms for now
+				let Some(term_key) = sel_id.strip_prefix("term:").map(|s| s.to_string()) else {
+					status.set(Some("Select a TERM node to edit.".to_string()));
+					return;
+				};
+
+				// IMPORTANT: keep the guard alive
+				let dict_guard = dict_state.read();
+				let Some(dict) = dict_guard.as_ref() else {
+					status.set(Some("Load a dictionary first.".to_string()));
+					return;
+				};
+
+				let Some(entry) = dict.definitions.get(&term_key) else {
+					status.set(Some(format!("Term not found in dictionary: {term_key}")));
+					return;
+				};
+
+				// populate editor draft fields
+				edit_term_key.set(Some(term_key));
+				edit_definition.set(entry.definition.clone());
+				edit_usage.set(entry.usage.clone());
+				edit_page.set(entry.found_on_page);
+				edit_time_period.set(entry.time_period.clone());
+				edit_open.set(true);
+			}
+		};
+
+		let on_save_edit = {
+		let mut dict_state = dict_state.clone();
+		let mut status = status.clone();
+
+		let mut edit_open = edit_open.clone();
+		let term_key_sig = edit_term_key.clone();
+
+		let def_sig = edit_definition.clone();
+		let usage_sig = edit_usage.clone();
+		let page_sig = edit_page.clone();
+		let tp_sig = edit_time_period.clone();
+
+		move |_| {
+			let Some(mut dict) = dict_state.read().clone() else {
+				status.set(Some("Load a dictionary first.".to_string()));
+				return;
+			};
+
+			let Some(term_key) = term_key_sig.read().clone() else {
+				status.set(Some("No term loaded in editor.".to_string()));
+				return;
+			};
+
+			let Some(entry) = dict.definitions.get_mut(&term_key) else {
+				status.set(Some(format!("Term not found: {term_key}")));
+				return;
+			};
+
+			entry.definition = def_sig.read().clone();
+			entry.usage = usage_sig.read().clone();
+			entry.found_on_page = *page_sig.read();
+			entry.time_period = tp_sig.read().clone();
+
+			dict_state.set(Some(dict));
+			edit_open.set(false);
+			status.set(Some(format!("Saved edits for {term_key}")));
+		}
+	};
 
     rsx! {
         div { class: "jaxbrain-container p-4 text-secondary-color space-y-4",
@@ -193,6 +322,83 @@ pub fn JaxBrain(
 									graph: graph.clone(),
 									visual: visual,
 									title: Some("Black's Law Dictionary (9th)".to_string()),
+									dict_state: dict_state,
+									status: status,
+									on_add_term: on_add_term,
+									on_edit_selected: on_edit_selected,
+								}
+
+								if *edit_open.read() {
+									div { class: "bg-neutral-900 border border-neutral-700 rounded-lg p-4 space-y-2",
+										h3 { class: "font-semibold", "Edit Term" }
+
+										if let Some(k) = edit_term_key.read().as_ref() {
+											p { class: "text-xs text-neutral-400", "term: {k}" }
+										}
+
+										label { class: "text-xs text-neutral-300", "Page" }
+										input {
+											class: "border px-2 py-1 w-full bg-transparent",
+											value: "{edit_page.read()}",
+											oninput: {
+												let mut edit_page = edit_page.clone();
+												move |evt| {
+													// naive parse
+													if let Ok(v) = evt.value().parse::<i32>() {
+														edit_page.set(v);
+													}
+												}
+											}
+										}
+
+										label { class: "text-xs text-neutral-300", "Time period" }
+										input {
+											class: "border px-2 py-1 w-full bg-transparent",
+											value: "{edit_time_period.read()}",
+											oninput: {
+												let mut sig = edit_time_period.clone();
+												move |evt| sig.set(evt.value().to_string())
+											}
+										}
+
+										label { class: "text-xs text-neutral-300", "Definition" }
+										textarea {
+											class: "border px-2 py-1 w-full bg-transparent",
+											rows: "4",
+											value: "{edit_definition.read()}",
+											oninput: {
+												let mut sig = edit_definition.clone();
+												move |evt| sig.set(evt.value().to_string())
+											}
+										}
+
+										label { class: "text-xs text-neutral-300", "Usage" }
+										textarea {
+											class: "border px-2 py-1 w-full bg-transparent",
+											rows: "4",
+											value: "{edit_usage.read()}",
+											oninput: {
+												let mut sig = edit_usage.clone();
+												move |evt| sig.set(evt.value().to_string())
+											}
+										}
+
+										div { class: "flex gap-2 pt-2",
+											button {
+												class: "px-3 py-1 border rounded",
+												onclick: on_save_edit,
+												"Save"
+											}
+											button {
+												class: "px-3 py-1 border rounded",
+												onclick: {
+													let mut edit_open = edit_open.clone();
+													move |_| edit_open.set(false)
+												},
+												"Cancel"
+											}
+										}
+									}
 								}
 							}
 						}
