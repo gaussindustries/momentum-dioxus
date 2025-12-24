@@ -8,10 +8,21 @@ use crate::components::context_menu::{
     ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem,
 };
 
+use crate::dioxus_elements::geometry::WheelDelta;
+
+
 const GRAPH_HEIGHT: i32 = 1250;
 const DETAILS_WIDTH: i32 = 260;
 const HOVER_RADIUS: f64 = 80.0;
 const PUSH_STRENGTH: f64 = 0.4;
+
+const SVG_PX_W: f64 = 2500.0;
+const SVG_PX_H: f64 = GRAPH_HEIGHT as f64;
+
+const ZOOM_STEP: f64 = 1.12;      // higher = faster zoom
+const MIN_VB_W: f64 = 120.0;      // clamp zoom in
+const MAX_VB_W: f64 = 12000.0;    // clamp zoom out
+
 
 #[component]
 pub fn GraphGenerator(
@@ -117,7 +128,6 @@ pub fn GraphGenerator(
 	let mut draft_related_terms = use_signal(|| Vec::<String>::new());
 	let mut related_input = use_signal(|| "".to_string());
 
-    // Populate drafts ONLY when edit_mode is on (and selection exists)
     // Populate drafts ONLY when edit_mode is on (and selection exists)
 	{
 		let dict_state = dict_state.clone();
@@ -262,6 +272,190 @@ pub fn GraphGenerator(
 		}
 	};
 
+	// -------- alphabetical page starts editor --------
+	let mut alpha_edit_mode = use_signal(|| false);
+	let mut alpha_dirty = use_signal(|| false);
+	// store as a stable list for UI (sorted)
+	let mut alpha_draft = use_signal(|| Vec::<(String, i32)>::new());
+	{
+		let dict_state = dict_state.clone();
+		let mut status = status.clone();
+
+		let mut alpha_draft = alpha_draft.clone();
+		let mut alpha_dirty = alpha_dirty.clone();
+
+		// snapshot the "current" selection + mode for this render
+		let alpha_edit_now = *alpha_edit_mode.read();
+		let selected_now = selected_id.read().clone();
+
+		use_effect(move || {
+			// only load draft when alpha edit is on AND defs category is selected
+			if !alpha_edit_now || selected_now.as_deref() != Some("cat:definitions") {
+				alpha_dirty.set(false);
+				alpha_draft.set(vec![]);
+				return;
+			}
+
+			alpha_dirty.set(false);
+
+			let guard = dict_state.read();
+			let Some(dict) = guard.as_ref() else {
+				status.set(Some("Load a dictionary first.".to_string()));
+				return;
+			};
+
+			// build sorted list
+			let mut items: Vec<(String, i32)> = dict
+				.alphabetical_page_starts
+				.iter()
+				.map(|(k, v)| (k.clone(), *v))
+				.collect();
+
+			items.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+			alpha_draft.set(items);
+		});
+	}
+	let on_save_alpha = {
+    let mut dict_state = dict_state.clone();
+    let mut status = status.clone();
+
+    let alpha_draft = alpha_draft.clone();
+    let mut alpha_dirty = alpha_dirty.clone();
+    let mut alpha_edit_mode = alpha_edit_mode.clone();
+
+    move |_| {
+			let Some(mut dict) = dict_state.read().clone() else {
+				status.set(Some("Load a dictionary first.".to_string()));
+				return;
+			};
+
+			// write back (same data, just updated)
+			let mut new_map = std::collections::BTreeMap::<String, i32>::new();
+			for (k, v) in alpha_draft.read().iter() {
+				new_map.insert(k.clone(), *v);
+			}
+
+			dict.alphabetical_page_starts = new_map;
+			dict_state.set(Some(dict));
+
+			alpha_dirty.set(false);
+			alpha_edit_mode.set(false);
+			status.set(Some("Saved alphabetical page starts.".to_string()));
+		}
+	};
+
+	// --- pan/zoom (viewBox) ---
+	let mut vb_x = use_signal(|| -200.0_f64);
+	let mut vb_y = use_signal(|| 100.0_f64);
+	let mut vb_w = use_signal(|| 1000.0_f64);
+	let mut vb_h = use_signal(|| 250.0_f64);
+
+	let mut is_panning = use_signal(|| false);
+	let mut last_mouse = use_signal(|| (0.0_f64, 0.0_f64));
+
+	// Zoom with mouse wheel (zooms around the center for simplicity)
+	let on_wheel = {
+		let mut vb_w = vb_w.clone();
+		let mut vb_h = vb_h.clone();
+		let mut vb_x = vb_x.clone();
+		let mut vb_y = vb_y.clone();
+
+		move |evt: Event<WheelData>| {
+			// Dioxus doesn't give delta_y(); use delta() and pattern-match.
+			let dy: f64 = match evt.delta() {
+				WheelDelta::Lines(v) => v.y * 40.0,   // lines -> pixels-ish
+				WheelDelta::Pixels(v) => v.y,         // already pixels
+				WheelDelta::Pages(v) => v.y * 800.0,  // optional, but nice to handle
+			};
+
+
+			let zoom_in = dy < 0.0;
+			let factor = if zoom_in { 1.0 / ZOOM_STEP } else { ZOOM_STEP };
+
+			let old_w = *vb_w.read();
+			let old_h = *vb_h.read();
+
+			let mut new_w = (old_w * factor).clamp(MIN_VB_W, MAX_VB_W);
+
+			// keep aspect ratio stable
+			let aspect = old_h / old_w;
+			let new_h = new_w * aspect;
+
+			// zoom around center of current view
+			let cx = *vb_x.read() + old_w * 0.5;
+			let cy = *vb_y.read() + old_h * 0.5;
+
+			vb_x.set(cx - new_w * 0.5);
+			vb_y.set(cy - new_h * 0.5);
+			vb_w.set(new_w);
+			vb_h.set(new_h);
+		}
+	};
+
+
+
+	let on_mouse_down = {
+		let mut is_panning = is_panning.clone();
+		let mut last_mouse = last_mouse.clone();
+		move |evt: MouseEvent| {
+			is_panning.set(true);
+			last_mouse.set((evt.client_coordinates().x as f64, evt.client_coordinates().y as f64));
+		}
+	};
+
+	let on_mouse_up = {
+		let mut is_panning = is_panning.clone();
+		move |_evt: MouseEvent| {
+			is_panning.set(false);
+		}
+	};
+
+	let on_mouse_leave = {
+		let mut is_panning = is_panning.clone();
+		move |_evt: MouseEvent| {
+			is_panning.set(false);
+		}
+	};
+
+	let on_mouse_move = {
+		let mut vb_x = vb_x.clone();
+		let mut vb_y = vb_y.clone();
+		let vb_w = vb_w.clone();
+		let vb_h = vb_h.clone();
+
+		let is_panning = is_panning.clone();
+		let mut last_mouse = last_mouse.clone();
+
+		move |evt: MouseEvent| {
+			if !*is_panning.read() {
+				return;
+			}
+
+			let (lx, ly) = *last_mouse.read();
+			let cx = evt.client_coordinates().x as f64;
+			let cy = evt.client_coordinates().y as f64;
+
+			let dx_px = cx - lx;
+			let dy_px = cy - ly;
+
+			// snapshot these BEFORE set()
+			let cur_x = *vb_x.read();
+			let cur_y = *vb_y.read();
+			let cur_w = *vb_w.read();
+			let cur_h = *vb_h.read();
+
+			// pixel -> world scaling based on viewBox size vs svg pixel size
+			let sx = cur_w / SVG_PX_W;
+			let sy = cur_h / SVG_PX_H;
+
+			// drag right -> view moves left
+			vb_x.set(cur_x - dx_px * sx);
+			vb_y.set(cur_y - dy_px * sy);
+
+			last_mouse.set((cx, cy));
+		}
+	};
+
 
     rsx! {
         div {
@@ -273,12 +467,32 @@ pub fn GraphGenerator(
                 ContextMenuTrigger {
                     div {
                         class: "flex-1 bg-neutral-900 rounded-lg p-3 h-full",
+						// pan/zoom handlers
+							onwheel: on_wheel,
+							onmousedown: on_mouse_down,
+							onmouseup: on_mouse_up,
+							onmouseleave: on_mouse_leave,
+							onmousemove: on_mouse_move,
+
+							// optional: nicer UX cursor
+							style: format!(
+								"border: 1px solid #444; cursor: {};",
+								if *is_panning.read() { "grabbing" } else { "grab" }
+							),
                         svg {
                             class: "block w-full h-full bg-[#020617] rounded-md",
-                            height: format!("{}", GRAPH_HEIGHT),
-                            width: 2500,
-                            view_box: "-200 100 1000 250",
-                            style: "border: 1px solid #444;",
+							height: format!("{}", GRAPH_HEIGHT),
+							width: 2500,
+
+							view_box: format!(
+								"{} {} {} {}",
+								*vb_x.read(),
+								*vb_y.read(),
+								*vb_w.read(),
+								*vb_h.read(),
+							),
+
+							
 
                             // edges
                             for e in &visual.edges {
@@ -645,8 +859,92 @@ pub fn GraphGenerator(
 									"Add"
 								}
 							}
+						} else if id == "cat:definitions" {
+								p { class: "text-neutral-300",
+									span { class: "font-semibold", "Node: " }
+									"Definitions"
+								}
 
-                        } else {
+								// read mode
+								if !*alpha_edit_mode.read() {
+									button {
+										class: "px-2 py-1 border rounded text-xs",
+										onclick: {
+											let mut selected = selected_id.clone();
+											let mut alpha_edit_mode = alpha_edit_mode.clone();
+											move |_| {
+												selected.set(Some("cat:definitions".to_string())); // pin it
+												alpha_edit_mode.set(true);
+											}
+										},
+										"Edit alphabetical page starts"
+									}
+
+									div { class: "mt-2 space-y-1",
+										for (k, v) in alpha_draft.read().iter() {
+											div { class: "flex justify-between text-xs text-neutral-300",
+												span { "{k}" }
+												span { "{v}" }
+											}
+										}
+									}
+								} else {
+									// edit mode
+									div { class: "flex items-center justify-between gap-2 pt-2",
+										h4 { class: "font-semibold", "Alphabetical page starts" }
+										div { class: "flex gap-2",
+											button {
+												class: if *alpha_dirty.read() {
+													"px-2 py-1 border rounded text-xs"
+												} else {
+													"px-2 py-1 border rounded text-xs opacity-50"
+												},
+												disabled: !*alpha_dirty.read(),
+												onclick: on_save_alpha,
+												"Save"
+											}
+											button {
+												class: "px-2 py-1 border rounded text-xs",
+												onclick: {
+													let mut alpha_edit_mode = alpha_edit_mode.clone();
+													move |_| alpha_edit_mode.set(false)
+												},
+												"Cancel"
+											}
+										}
+									}
+
+									div { class: "mt-2 space-y-2",
+										for (idx, (k, v)) in alpha_draft.read().iter().cloned().enumerate() {
+											div { class: "flex items-center gap-2",
+												input {
+													class: "border px-2 py-1 w-12 bg-transparent text-xs",
+													value: "{k}",
+													disabled: true,
+												}
+												input {
+													class: "border px-2 py-1 flex-1 bg-transparent text-xs",
+													value: "{v}",
+													oninput: {
+														let mut alpha_draft = alpha_draft.clone();
+														let mut alpha_dirty = alpha_dirty.clone();
+														move |evt| {
+															if let Ok(num) = evt.value().parse::<i32>() {
+																let mut vec = alpha_draft.read().clone();
+																if let Some(item) = vec.get_mut(idx) {
+																	item.1 = num;
+																	alpha_draft.set(vec);
+																	alpha_dirty.set(true);
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							} else {
                             // READ-ONLY MODE (any node)
                             if let Some(label) = selected_label.clone() {
                                 p { class: "text-neutral-300",
@@ -694,7 +992,7 @@ pub fn GraphGenerator(
                         }
                     }
                 }
-
+				
                 p { class: "text-xs text-neutral-500 pt-2 border-t border-neutral-800 mt-3",
                     "Nodes: {graph.nodes.len()}, edges: {graph.edges.len()}"
                 }

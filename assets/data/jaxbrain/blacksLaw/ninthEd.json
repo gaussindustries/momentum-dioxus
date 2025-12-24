@@ -1,91 +1,67 @@
 {
   "alphabetical page starts": {
-    "o": 1204,
-    "j": 0,
-    "d": 0,
-    "l": 0,
-    "p": 1245,
-    "u": 0,
-    "t": 0,
-    "z": 0,
-    "m": 0,
+    "a": 29,
+    "b": 186,
+    "c": 258,
+    "d": 473,
+    "e": 612,
     "f": 0,
-    "x": 0,
-    "k": 0,
-    "n": 0,
-    "v": 0,
-    "i": 0,
     "g": 0,
     "h": 0,
-    "r": 0,
-    "c": 0,
+    "i": 0,
+    "j": 0,
+    "k": 0,
+    "l": 0,
+    "m": 0,
+    "n": 0,
+    "o": 1204,
+    "p": 1245,
     "q": 0,
-    "y": 0,
+    "r": 0,
+    "s": 0,
+    "t": 0,
+    "u": 0,
+    "v": 0,
     "w": 0,
-    "e": 0,
-    "a": 29,
-    "b": 0,
-    "s": 0
+    "x": 0,
+    "y": 0,
+    "z": 0
   },
   "abbreviations": {
-    "usu": "usually",
-    "p": "paragraph",
-    "vb": "verb",
-    "n": "noun; note",
-    "pl": "plural",
-    "sing": "singular",
-    "abbr": "abbreviated as; abbreviation for",
-    "rev": "revised by; revision",
-    "adv": "adverb",
-    "l.c.": "lowercase",
-    "repr": "reprinted",
-    "s": "section",
-    "esp": "especially",
-    "pt": "part",
-    "pp": "pages",
-    "conj": "conjunciton",
-    "cap": "capitalized",
-    "p.pl": "past participle",
-    "adj": "adjective",
-    "i.e.": "(id est) that is",
-    "cf": "(confer) compare with",
-    "ca": "circa",
-    "fr": "from; derived from",
-    "ed": "edition; editor",
-    "e.g.": "(exempli gratia) for example",
-    "prep": "preposition",
-    "id": "(idem) in the same work",
     "BrE": "British English",
-    "specif": "specifically",
+    "abbr": "abbreviated as; abbreviation for",
+    "adj": "adjective",
+    "adv": "adverb",
+    "ca": "circa",
+    "cap": "capitalized",
+    "cf": "(confer) compare with",
     "ch": "chapter",
+    "conj": "conjunciton",
+    "e.g.": "(exempli gratia) for example",
+    "ed": "edition; editor",
+    "esp": "especially",
     "et seq": "(et sequentes) and those (pages or section) that follow",
-    "no": "number"
+    "fr": "from; derived from",
+    "i.e.": "(id est) that is",
+    "id": "(idem) in the same work",
+    "l.c.": "lowercase",
+    "n": "noun; note",
+    "no": "number",
+    "p": "paragraph",
+    "p.pl": "past participle",
+    "pl": "plural",
+    "pp": "pages",
+    "prep": "preposition",
+    "pt": "part",
+    "repr": "reprinted",
+    "rev": "revised by; revision",
+    "s": "section",
+    "sing": "singular",
+    "specif": "specifically",
+    "usu": "usually",
+    "vb": "verb"
   },
   "definitions": {
-    "example": {
-      "found on page": 0,
-      "time period": "16c",
-      "definition": "",
-      "usage": "",
-      "e.g.": [],
-      "related notable words": [
-        "",
-        ""
-      ]
-    },
-    "officer": {
-      "found on page": 1221,
-      "time period": "14c",
-      "definition": "A person who holds an office of trust, authority, or command",
-      "usage": "In public affairs, the term refers esp to a person holding public office under a nation, state, or local government, and authorized by that government to excercise some specific fucntion. In coporate law, the term refers esp to a person elected daily operation of a corporation, such as a CEO, president, secretary, or tresurer.",
-      "e.g.": [],
-      "related notable words": [
-        "person",
-        "trust",
-        "authority",
-        "command"
-      ]
-    },
     "affadavit": {
       "found on page": 94,
       "time period": "16c",
@@ -102,14 +78,94 @@
         "summary-judgment motions"
       ]
     },
+    "citation": {
+      "found on page": 305,
+      "time period": "13c",
+      "definition": "1. A court-issued writ that commands \na person to appear at a certain time and place to do \nsomething demanded in the writ, or to show cause for \nnot doing so. 2. A police-issued order to appear before a \njudge on a given date to defend against a stated charge, \nsuch as a traffic violation. \nAlso termed appearance \nticket. [Cases: Automobiles (;:::>351.1.] 3. A reference to \na legal precedent or authority, such as a case, statute, or \ntreatise, that either substantiates or contradicts a given \nposition. \nOften shortened to (in sense 3) cite",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": []
+    },
+    "common law": {
+      "found on page": 341,
+      "time period": "14c",
+      "definition": "1. The body of law derived from judicial \ndecisions, rather than from statutes or constitutions; ",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": []
+    },
+    "contempt": {
+      "found on page": 388,
+      "time period": "14c",
+      "definition": "1. The act or state of despising; the \ncondition ofbeing despised. 2. Conduct that defies the \nauthority or dignity ofa court or legislature.",
+      "usage": "Because \nsuch conduct interferes with the administration of \njustice, it is punishable, usu. by fine or imprisonment. \nFed. R. Civ. P. 45(e); Fed. R. Crim. P. 42; 18 USCA § 40l. ",
+      "e.g.": [],
+      "related notable words": [
+        "contumacy"
+      ]
+    },
+    "continuance": {
+      "found on page": 391,
+      "time period": "14c",
+      "definition": "1. The act ofkeeping up, maintain­\ning, or prolonging <continuance of the formal tradi­\ntion>. 2. Duration; time of continuing <the senator's \ncontinuance in office>. 3. Procedure. The adjournment \nor postponement of a trial or other proceeding to a \nfuture date <motion for continuance>.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "recess",
+        "continue"
+      ]
+    },
+    "execute": {
+      "found on page": 677,
+      "time period": "14c",
+      "definition": "1. To perform or complete (a contract \nor duty) Cases: Contracts \n2. To change (as a \nlegal interest) from one form to another . 3. To make \n(a legal document) valid by signing; to bring (a legal \ndocument) into its final, legally enforceable form \n<each party executed the contract without a signa­\nture witness>. 4. To put to death, esp. by legal sentence \n[Cases: \nSentencing and Punishment\n 5. To enforce \nand collect on (a money judgment)",
+      "usage": "<once the contract was fully executed, the \nparties owed no further contractual duties to each \nother>. \n\n<the shifting \nuse was executed into a valid legal estate>\n\n<Johnson was executed shortly after midnight>. \n\n<Williams asked th sheriff to execute on the judgment>",
+      "e.g.": [],
+      "related notable words": [
+        "oath of office"
+      ]
+    },
+    "executed": {
+      "found on page": 677,
+      "time period": "16c",
+      "definition": "1. (Of a document) that has been \nsigned <an executed will>. 2. That has been done, given, \nor performed <executed consideration>. \n\"[Tlhe term 'executed' is a slippery word. Its use is to be \navoided except when accompanied by explanation.... \nA contract is frequently said to be executed when the \ndocument has been signed, or has been signed, sealed, \nand delivered. Further, by executed contract is frequently \nmeant one that has been fully performed by both parties.\" \nWilliam R. Anson, Principles of the Law of Contract 26 n.* \n(Arthur l. Corbin ed., 3d Am. ed. 1919",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "execute",
+        "oath",
+        "oath of office"
+      ]
+    },
+    "oath": {
+      "found on page": 1204,
+      "time period": "12c",
+      "definition": "1. A solemn declaration, accompanied \nby a swearing to God or a revered person or thing, \nthat one's statement is true or that one will be bound \nto a promise. \n2. A statement or promise made by such a declaration. \n3. A form of words used for such a declaration. 4. A \nformal declaration made solemn without a swearing \nto God or a revered person or thing; AFFIRMATION. Cf. \nPLEDGE (1). ",
+      "usage": "The person making the oath implic­\nitly invites punishment if the statement is untrue or \nthe promise is broken. The legal effect of an oath is to \nsubject the person to penalties for perjury if the testi­\nmony is false.",
+      "e.g.": [],
+      "related notable words": []
+    },
     "oath of office": {
       "found on page": 1204,
       "time period": "16c",
-      "definition": "An oath taken by a person about \nto enter into the duties ofpublic office, by which the \nperson promises to perform the duties of that office \nin good faith",
+      "definition": "An oath taken by a person about \nto enter into the duties of public office, by which the \nperson promises to perform the duties of that office \nin good faith",
       "usage": "",
       "e.g.": [],
       "related notable words": [
         "oath"
+      ]
+    },
+    "officer": {
+      "found on page": 1221,
+      "time period": "14c",
+      "definition": "A person who holds an office of trust, authority, or command",
+      "usage": "In public affairs, the term refers esp to a person holding public office under a nation, state, or local government, and authorized by that government to excercise some specific fucntion. In coporate law, the term refers esp to a person elected daily operation of a corporation, such as a CEO, president, secretary, or tresurer.",
+      "e.g.": [],
+      "related notable words": [
+        "person",
+        "trust",
+        "authority",
+        "command"
       ]
     }
   }
