@@ -181,6 +181,9 @@
   }
 }
 @layer utilities {
+  .fixed {
+    position: fixed;
+  }
   .relative {
     position: relative;
   }
@@ -252,9 +255,6 @@
   }
   .border-collapse {
     border-collapse: collapse;
-  }
-  .resize {
-    resize: both;
   }
   .flex-col {
     flex-direction: column;
@@ -432,9 +432,6 @@
   }
   .lowercase {
     text-transform: lowercase;
-  }
-  .underline {
-    text-decoration-line: underline;
   }
   .opacity-50 {
     opacity: 50%;

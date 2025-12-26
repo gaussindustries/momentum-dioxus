@@ -78,6 +78,16 @@
         "summary-judgment motions"
       ]
     },
+    "circuit": {
+      "found on page": 304,
+      "time period": "15c",
+      "definition": "1. A judicial division in which hearings \noccur at several locations, as a result ofwhich judges \noften travel to different locations. [Cases: Courts (::::-:: \n45.] 2. A judicial division of the United States -\nthat \nis, one of the 13 circuits into which the U.S. courts of \nappeals are organized. 28 USCA § 41",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "court"
+      ]
+    },
     "citation": {
       "found on page": 305,
       "time period": "13c",
@@ -114,6 +124,24 @@
         "recess",
         "continue"
       ]
+    },
+    "court": {
+      "found on page": 433,
+      "time period": "12c",
+      "definition": "1. A governmental body consisting of \none or more judges who sit to adjudicate disputes and \nadminister justice\n2. \"The judge or judges who sit on such a governmen­\ntal body <the court asked the parties to approach the \nbench>. 3. A legislative assembly <in Massachusetts, \nthe General Court is the legislature>. 4. The locale for \na legal proceeding <an out-of-court statement>. 5. The \nbuilding where the judge or judges convene to adjudi­\ncate disputes and administer justice <the lawyers agreed \nto meet at the court at 8:00 a.m.>. -\nAlso termed (in \nsense 5) courthouse",
+      "usage": "\"A court ... is a permanently organized body, with inde­\npendent judicial powers defined by law, meeting at a time \nand place fixed by law for the judicial public administration \nofjustice.\" 1 Williamj. Hughes, Federal Practice, Jurisdiction \n& Procedure § 7, at 8 (1931). ",
+      "e.g.": [],
+      "related notable words": [
+        "circuit"
+      ]
+    },
+    "duress": {
+      "found on page": 606,
+      "time period": "13c",
+      "definition": "1. Strictly, the physical con­\nfinement of a person or the detention of a contracting \nparty's property \n2. Broadly, a threat of harm made to compel a person \nto do something against his or her will or judgment; \nesp., a wrongful threat made by one person to compel \na manifestation of seeming assent by another person \nto a transaction without real volition .",
+      "usage": "In the field of torts, duress is con­\nsidered a species of fraud in which compulSion takes \nthe place of deceit in causing injury. \n\nDuress consists in actual or threatened violence or impris­\nonment; the subject of it must be the contracting party \nhimself, or his wife, parent, or child; and it must be inflicted \nor threatened by the other party to the contract, or else \nby one acting with his knowledge and for his advantage.\" \nWilliam R. Anson, PrinCiples of the Law ofContract 261-62 \n(Arthur l. Corbin ed., 3d Am. ed. 1919).\nA marriage \nthat is induced by duress is generally voidable\n\nDuress is a recognized \ndefense to a crime, contractual breach, or tort.\n\n",
+      "e.g.": [],
+      "related notable words": []
     },
     "execute": {
       "found on page": 677,
@@ -167,6 +195,22 @@
         "authority",
         "command"
       ]
+    },
+    "pursuant": {
+      "found on page": 1384,
+      "time period": "16c",
+      "definition": "1. In compliance with; in accordance \nwith; under <she filed the motion pursuant to the \ncourt's order>. 2. As authorized by; under <pursuant \nto Rule 56, the plaintiff moves for summary judgment>. \n3. In carrying out <pursuant to his responsibilities, he \nensured that all lights had been turned out>",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": []
+    },
+    "vehicle": {
+      "found on page": 0,
+      "time period": "",
+      "definition": "1. An instrument oftransportation \nor conveyance. 2. Any conveyance used in transporting \npassengers or things by land, water, or air\n3. ",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": []
     }
   }
 }

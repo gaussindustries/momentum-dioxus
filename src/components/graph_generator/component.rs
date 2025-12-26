@@ -455,7 +455,7 @@ pub fn GraphGenerator(
 			last_mouse.set((cx, cy));
 		}
 	};
-
+	
 
     rsx! {
         div {

@@ -142,24 +142,126 @@ pub fn save_dictionary_to_path(path: &str, dict: &DictionaryFile) -> Result<(), 
     fs::write(path, text)
         .map_err(|e| format!("Failed to write {}: {}", path, e))
 }
+/// Layout-dependent radii config.
+/// Keep this small and explicit so each layout can pick different sizes safely.
+#[derive(Clone, Copy, Debug)]
+pub struct LayoutRadii {
+    pub root: f64,
+    pub category: f64,
+    pub alpha: f64,
+    pub term: f64,
+    pub abbreviation: f64,
+
+    /// Extra space you want between circles (and between rings) to avoid visual overlap.
+    pub padding: f64,
+
+    /// Extra “spread” you want between master and categories (beyond just radii+padding).
+    pub category_extra_offset: f64,
+
+    /// Base ring radii (optional). If None, we compute something conservative from node radii.
+    pub alpha_ring_radius: Option<f64>,
+    pub leaf_ring_radius: Option<f64>,
+    pub abbr_ring_radius: Option<f64>,
+}
+
+impl LayoutRadii {
+    pub const fn roomy() -> Self {
+        Self {
+            root: 400.0,          // NOTE: this should match what you draw in the UI for "root"
+            category: 180.0,
+            alpha: 15.0,
+            term: 14.0,
+            abbreviation: 14.0,
+            padding: 35.0,
+            category_extra_offset: 40.0,
+            alpha_ring_radius: None,
+            leaf_ring_radius: None,
+            abbr_ring_radius: None,
+        }
+    }
+
+    pub const fn compact() -> Self {
+        Self {
+            root: 70.0,
+            category: 16.0,
+            alpha: 12.0,
+            term: 12.0,
+            abbreviation: 12.0,
+            padding: 24.0,
+            category_extra_offset: 25.0,
+            alpha_ring_radius: None,
+            leaf_ring_radius: None,
+            abbr_ring_radius: None,
+        }
+    }
+
+    #[inline]
+    pub fn radius_for(&self, kind: &str) -> f64 {
+        match kind {
+            "root" => self.root,
+            "category" => self.category,
+            "alpha" => self.alpha,
+            "term" => self.term,
+            "abbreviation" => self.abbreviation,
+            _ => self.term,
+        }
+    }
+
+    /// Compute a safe default ring radius so alpha nodes don't overlap the defs category.
+    #[inline]
+    pub fn alpha_ring_radius_default(&self) -> f64 {
+        // category circle + padding + alpha circle + some breathing room
+        self.category + self.padding + self.alpha + 60.0
+    }
+
+    /// Compute a safe default leaf ring radius so terms don't overlap the alpha circle.
+    #[inline]
+    pub fn leaf_ring_radius_default(&self) -> f64 {
+        self.alpha + self.padding + self.term + 30.0
+    }
+
+    /// Compute a safe default abbr ring radius around the Abbreviations category.
+    #[inline]
+    pub fn abbr_ring_radius_default(&self) -> f64 {
+        self.category + self.padding + self.abbreviation + 40.0
+    }
+}
+
+/// Convenience wrapper if you still want a free function.
+/// Prefer passing LayoutRadii into layout_dictionary_graph though.
+pub fn radius_for(kind: &str) -> f64 {
+    LayoutRadii::roomy().radius_for(kind)
+}
 
 // --------- helpers for graph generation ----------
 
 pub fn layout_dictionary_graph(graph: &Graph, title: Option<&str>) -> VisualGraph {
+    // Pick a layout profile here (or pass it as a parameter if you want runtime selection)
+    let radii = LayoutRadii::roomy();
+
     // Basic geometry
     let center_x = 300.0_f64;
     let center_y = 250.0_f64;
-    let cat_radius = 250.0_f64;
 
-    // Radii for rings
-    let alpha_radius = 205.0_f64; // ring for A-Z around Definitions
-    let leaf_radius  = 55.0_f64; // ring for terms around each letter bucket
+    // Core node radii
+    let master_r = radii.radius_for("root");
+    let defs_r   = radii.radius_for("category");
+    let abbr_r   = radii.radius_for("category");
+
+    // distance from master center to category centers
+    // must be >= sum of radii + padding + optional extra offset
+    let cat_radius = (master_r + defs_r + radii.padding + radii.category_extra_offset)
+        .max(master_r + abbr_r + radii.padding + radii.category_extra_offset);
 
     let defs_center = (center_x - cat_radius, center_y);
     let abbr_center = (center_x + cat_radius, center_y);
 
-    // Split by kind
-    let term_nodes: Vec<_> = graph.nodes.iter().filter(|n| n.kind == "term").cloned().collect();
+    // Ring radii (either provided explicitly or computed safely)
+    let alpha_radius = radii.alpha_ring_radius.unwrap_or_else(|| radii.alpha_ring_radius_default());
+    let leaf_radius  = radii.leaf_ring_radius.unwrap_or_else(|| radii.leaf_ring_radius_default());
+    let abbr_ring_radius = radii.abbr_ring_radius.unwrap_or_else(|| radii.abbr_ring_radius_default());
+
+    // Split by kind (term_nodes isn't used below in your snippet; keep only what you use)
     let abbr_nodes: Vec<_> = graph.nodes.iter().filter(|n| n.kind == "abbreviation").cloned().collect();
     let alpha_nodes: Vec<_> = graph.nodes.iter().filter(|n| n.kind == "alpha").cloned().collect();
 
@@ -208,8 +310,7 @@ pub fn layout_dictionary_graph(graph: &Graph, title: Option<&str>) -> VisualGrap
         kind: "hierarchy".into(),
     });
 
-    // ----- NEW: alpha nodes around Definitions -----
-    // Sort alpha nodes by label (A..Z) so they form a clean ring
+    // ----- alpha nodes around Definitions -----
     let mut alpha_sorted = alpha_nodes;
     alpha_sorted.sort_by(|a, b| a.label.to_lowercase().cmp(&b.label.to_lowercase()));
 
@@ -228,7 +329,6 @@ pub fn layout_dictionary_graph(graph: &Graph, title: Option<&str>) -> VisualGrap
             y,
         });
 
-        // defs -> alpha
         vedges.push(VisualEdge {
             from: defs_id.clone(),
             to: node.id.clone(),
@@ -236,12 +336,12 @@ pub fn layout_dictionary_graph(graph: &Graph, title: Option<&str>) -> VisualGrap
         });
     }
 
-    // ----- Abbr nodes around Abbreviations (same as before) -----
+    // ----- Abbr nodes around Abbreviations -----
     let abbr_limit = abbr_nodes.len().min(40);
     for (i, node) in abbr_nodes.iter().take(abbr_limit).enumerate() {
         let angle = (i as f64) / (abbr_limit as f64).max(1.0) * std::f64::consts::TAU;
-        let x = abbr_center.0 + 90.0 * angle.cos();
-        let y = abbr_center.1 + 90.0 * angle.sin();
+        let x = abbr_center.0 + abbr_ring_radius * angle.cos();
+        let y = abbr_center.1 + abbr_ring_radius * angle.sin();
 
         vnodes.push(VisualNode {
             id: node.id.clone(),
