@@ -458,28 +458,6 @@ pub fn GraphGenerator(
 		}
 	};
 	
-	let highlighted_related: HashSet<(String, String)> = {
-		let mut set = HashSet::new();
-
-		if let Some(sel) = selected_id.read().as_ref() {
-			if sel.starts_with("term:") {
-				// highlight both directions so it "just works" visually
-				for e in &graph.edges {
-					if e.relation == "related_to" {
-						let a = e.from.clone();
-						let b = e.to.clone();
-
-						if &a == sel || &b == sel {
-							set.insert((a.clone(), b.clone()));
-							set.insert((b, a)); // reverse direction too
-						}
-					}
-				}
-			}
-		}
-
-		set
-	};
 	let selected_term_id: Option<String> = selected_id
     .read()
     .clone()
