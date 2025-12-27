@@ -1,5 +1,6 @@
+use dioxus::document::eval;
 use dioxus::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::models::jaxBrain::node::{Graph, VisualGraph};
 use crate::models::jaxBrain::templates::dictionary::DictionaryFile;
@@ -361,6 +362,7 @@ pub fn GraphGenerator(
 		let mut vb_y = vb_y.clone();
 
 		move |evt: Event<WheelData>| {
+			evt.prevent_default();
 			// Dioxus doesn't give delta_y(); use delta() and pattern-match.
 			let dy: f64 = match evt.delta() {
 				WheelDelta::Lines(v) => v.y * 40.0,   // lines -> pixels-ish
@@ -456,6 +458,32 @@ pub fn GraphGenerator(
 		}
 	};
 	
+	let highlighted_related: HashSet<(String, String)> = {
+		let mut set = HashSet::new();
+
+		if let Some(sel) = selected_id.read().as_ref() {
+			if sel.starts_with("term:") {
+				// highlight both directions so it "just works" visually
+				for e in &graph.edges {
+					if e.relation == "related_to" {
+						let a = e.from.clone();
+						let b = e.to.clone();
+
+						if &a == sel || &b == sel {
+							set.insert((a.clone(), b.clone()));
+							set.insert((b, a)); // reverse direction too
+						}
+					}
+				}
+			}
+		}
+
+		set
+	};
+	let selected_term_id: Option<String> = selected_id
+    .read()
+    .clone()
+    .filter(|id| id.starts_with("term:"));
 
     rsx! {
         div {
@@ -495,26 +523,50 @@ pub fn GraphGenerator(
 							
 
                             // edges
-                            for e in &visual.edges {
-                                if let (Some((x1, y1)), Some((x2, y2))) =
-                                    (pos_map.get(&e.from), pos_map.get(&e.to))
-                                {
-                                    line {
-                                        x1: format!("{x1}"),
-                                        y1: format!("{y1}"),
-                                        x2: format!("{x2}"),
-                                        y2: format!("{y2}"),
-                                        stroke: match e.kind.as_str() {
-                                            "hierarchy" => "#64748b",
-                                            "category"  => "#475569",
-                                            "related" | "related_to" => "#334155",
-                                            _ => "#475569",
-                                        },
-                                        "stroke-width": "1",
-                                        "stroke-opacity": "0.9",
-                                    }
-                                }
-                            }
+							for e in &visual.edges {
+								if let (Some((x1, y1)), Some((x2, y2))) = (pos_map.get(&e.from), pos_map.get(&e.to)) {
+									{
+										// ✅ put Rust statements inside a block expression
+										let is_related_edge = matches!(e.kind.as_str(), "related" | "related_to");
+
+
+										let is_highlighted = selected_term_id
+											.as_ref()
+											.map(|sel| is_related_edge && (&e.from == sel || &e.to == sel))
+											.unwrap_or(false);
+
+										let stroke = if is_highlighted {
+											"#38bdf8" // skyblue highlight
+										} else {
+											match e.kind.as_str() {
+												"hierarchy" => "#64748b",
+												"category" => "#475569",
+												"related" | "related_to" => "#334155",
+												_ => "#475569",
+											}
+										};
+
+										let stroke_width = if is_highlighted { "2.5" } else { "1" };
+										let stroke_opacity = if is_highlighted { "1.0" } else { "0.9" };
+
+										rsx! {
+											line {
+												x1: "{x1}",
+												y1: "{y1}",
+												x2: "{x2}",
+												y2: "{y2}",
+												stroke: "{stroke}",
+												"stroke-width": "{stroke_width}",
+												"stroke-opacity": "{stroke_opacity}",
+												style: "transition: stroke 180ms ease, stroke-width 180ms ease, stroke-opacity 180ms ease;",
+											}
+										}
+									}
+								}
+							}
+
+
+
 
                             // nodes
                             for vn in &visual.nodes {
