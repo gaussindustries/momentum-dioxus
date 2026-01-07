@@ -1,0 +1,22 @@
+.goal-row {
+  position: relative;
+}
+
+/* child indent line scaffold */
+.goal-children {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid #334155;
+}
+
+/* elbow: each child row gets a little horizontal line */
+.goal-tree .goal-row::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 16px;
+  width: 12px;
+  height: 0;
+  border-top: 1px solid #334155;
+  opacity: 0.9;
+}

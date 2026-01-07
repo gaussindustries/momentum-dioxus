@@ -1,3 +1,12 @@
+/**
+ * 
+ * make template for general purpose 
+ * 
+ * enhance the way to make new, implement the file explorer or something
+ * 
+ * make the load/save hidable
+ */
+
 use dioxus::prelude::*;
 use strum::{EnumIter, Display, IntoEnumIterator};
 

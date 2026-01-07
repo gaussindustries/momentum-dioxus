@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "roots": [
+    {
+      "id": "b5aa09ba-a522-4d7a-bfb6-baa9238774ad",
+      "title": "weight",
+      "category": "health",
+      "tags": [],
+      "smart": {
+        "specific": "I want to maintain ~< 1900 NET calories everyday until the end of the 6th month",
+        "measurable": "I am currently 214.6 [12-29-25]",
+        "achievable": "I have lost weight before, I am more than capable stopping bad habits, it's all about momentum and self discapline",
+        "relevant": "it's important for me to live my life to the fullest",
+        "time_bound": "End of June"
+      },
+      "metric": {
+        "type": "numeric",
+        "unit": "lb",
+        "current": 0.0,
+        "target": 170.0,
+        "clamp_0_100": false
+      },
+      "context_links": [],
+      "created_at": [
+        2026,
+        2,
+        8,
+        7,
+        59,
+        967798442,
+        0,
+        0,
+        0
+      ],
+      "updated_at": [
+        2026,
+        7,
+        2,
+        27,
+        18,
+        534502762,
+        0,
+        0,
+        0
+      ],
+      "archived": false,
+      "completed": false,
+      "children": [
+        {
+          "id": "84bfdf6c-efc3-4207-83ba-3317acb71b58",
+          "title": "hit 10k steps/day",
+          "category": "health",
+          "tags": [],
+          "smart": {
+            "specific": "Walk daily to increase baseline calorie burn",
+            "measurable": "10,000 steps per day tracked",
+            "achievable": "I can do this even on busy days by splitting walks",
+            "relevant": "Supports fat loss and conditioning",
+            "time_bound": "Start today; maintain for 12 weeks"
+          },
+          "metric": {
+            "type": "boolean",
+            "done": false
+          },
+          "context_links": [],
+          "created_at": [
+            2026,
+            2,
+            8,
+            7,
+            59,
+            967820293,
+            0,
+            0,
+            0
+          ],
+          "updated_at": [
+            2026,
+            2,
+            8,
+            7,
+            59,
+            967820293,
+            0,
+            0,
+            0
+          ],
+          "archived": false,
+          "completed": false,
+          "children": []
+        },
+        {
+          "id": "079ffe88-5cfb-467c-bd63-f21fef889ee4",
+          "title": "keep carbs ~10%",
+          "category": "health",
+          "tags": [],
+          "smart": {
+            "specific": "Keep carbs limited, mostly rice around training",
+            "measurable": "Log macros; carbs ~10% of calories",
+            "achievable": "Food list is simple; I can repeat meals",
+            "relevant": "Helps cut while holding appetite stable",
+            "time_bound": "For the next 16 weeks"
+          },
+          "metric": {
+            "type": "boolean",
+            "done": false
+          },
+          "context_links": [],
+          "created_at": [
+            2026,
+            2,
+            8,
+            7,
+            59,
+            967828895,
+            0,
+            0,
+            0
+          ],
+          "updated_at": [
+            2026,
+            2,
+            8,
+            7,
+            59,
+            967828895,
+            0,
+            0,
+            0
+          ],
+          "archived": false,
+          "completed": false,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "0c98df8d-f6d8-4069-944d-e3d297f516c2",
+      "title": "Gauss Industries",
+      "category": "wealth",
+      "tags": [],
+      "smart": {
+        "specific": "Launch/scale the engineering/embedded services business with a clear offer and pipeline",
+        "measurable": "Publish offer + portfolio, close first 3 paid engagements",
+        "achievable": "I already build systems; package into sellable outcomes",
+        "relevant": "Funds land + future R&D",
+        "time_bound": "End of June 26'"
+      },
+      "metric": {
+        "type": "numeric",
+        "unit": "clients",
+        "current": 0.0,
+        "target": 3.0,
+        "clamp_0_100": true
+      },
+      "context_links": [],
+      "created_at": [
+        2026,
+        2,
+        8,
+        7,
+        59,
+        967833231,
+        0,
+        0,
+        0
+      ],
+      "updated_at": [
+        2026,
+        6,
+        20,
+        48,
+        26,
+        722477607,
+        0,
+        0,
+        0
+      ],
+      "archived": false,
+      "completed": false,
+      "children": [
+        {
+          "id": "a260cf1f-01b4-4d06-902a-997885b89cc0",
+          "title": "Complete the Guv",
+          "category": "wealth",
+          "tags": [],
+          "smart": {
+            "specific": "Generate reliable power control loop, telemetry interface, and remote access via that interface.",
+            "measurable": "implement all states and indentify bugs",
+            "achievable": "I already am learning RTIC, Rust, and RTOS concepts",
+            "relevant": "it is the ticket to your success in your engineering firm, it encapsulates multiple paradigms and combines them into a single overarching project that will prove to a client you can deliver high reliablity systems, and know how to design them to minimize or eliminate failures.",
+            "time_bound": "April 29th, 2026"
+          },
+          "metric": {
+            "type": "boolean",
+            "done": false
+          },
+          "context_links": [],
+          "created_at": [
+            2026,
+            2,
+            17,
+            43,
+            37,
+            731828340,
+            0,
+            0,
+            0
+          ],
+          "updated_at": [
+            2026,
+            6,
+            20,
+            33,
+            4,
+            695929211,
+            0,
+            0,
+            0
+          ],
+          "archived": false,
+          "completed": false,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "9a608209-a1f2-4aa2-b2ce-e7c42dd68dbd",
+      "title": "purchase land",
+      "category": "wealth",
+      "tags": [],
+      "smart": {
+        "specific": "Save and prepare to purchase land suitable for building and long-term living",
+        "measurable": "Down payment saved + shortlist 10 viable properties",
+        "achievable": "Automate saving; strict criteria",
+        "relevant": "Foundation for house + workshop",
+        "time_bound": "12–18 months"
+      },
+      "metric": {
+        "type": "numeric",
+        "unit": "usd",
+        "current": 0.0,
+        "target": 25000.0,
+        "clamp_0_100": true
+      },
+      "context_links": [],
+      "created_at": [
+        2026,
+        2,
+        8,
+        7,
+        59,
+        967836001,
+        0,
+        0,
+        0
+      ],
+      "updated_at": [
+        2026,
+        2,
+        8,
+        7,
+        59,
+        967836001,
+        0,
+        0,
+        0
+      ],
+      "archived": false,
+      "completed": false,
+      "children": []
+    }
+  ]
+}

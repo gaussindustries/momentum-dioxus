@@ -62,6 +62,18 @@
     "vb": "verb"
   },
   "definitions": {
+    "Amend": {
+      "found on page": 122,
+      "time period": "13c",
+      "definition": "1. To make right; to correct or rectify \n<amend the order to :fix a derical error>. 2. To change \nthe wording of; sped£., to formally alter (a statute, \nconstitution, motion, etc.) by striking out, inserting, \nor substituting words <amend the legislative bill>.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "amendable",
+        "amendability",
+        "amendment"
+      ]
+    },
     "affadavit": {
       "found on page": 94,
       "time period": "16c",
@@ -76,6 +88,16 @@
         "declarant",
         "officer",
         "summary-judgment motions"
+      ]
+    },
+    "amendment": {
+      "found on page": 122,
+      "time period": "17c",
+      "definition": "1. A formal revision or addition \nproposed or made to a statute, constitution, pleading, \norder. or other instrument; specif., a change made by \naddition, deletion, or correction; esp., an alteration \nin wording. ",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "amend"
       ]
     },
     "circuit": {
@@ -104,6 +126,31 @@
       "e.g.": [],
       "related notable words": []
     },
+    "complaint": {
+      "found on page": 351,
+      "time period": "14c",
+      "definition": "1. The initial pleading that starts a civil \naction and states the basis for the court's jurisdiction, \nthe basis for the plaintiff's claim, and the demand for \nrelief.• In some states, this pleading is called a petition. 2. Criminal law. A formal charge accusing a \nperson of an offense.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "citation",
+        "officer",
+        "court"
+      ]
+    },
+    "constitution": {
+      "found on page": 381,
+      "time period": "18c",
+      "definition": "1. The fundamental and organic law \nofa nation or state that establishes the institutions and \napparatus ofgovernment, defines the scope ofgovern­\nmental sovereign powers, and guarantees individual \ncivil rights and civil liberties.\n2. The written instrument embodying \nthis fundamental law, together with any formal amend­\nments. ",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "amendment",
+        "court",
+        "common law",
+        "jurisdiction"
+      ]
+    },
     "contempt": {
       "found on page": 388,
       "time period": "14c",
@@ -111,7 +158,8 @@
       "usage": "Because \nsuch conduct interferes with the administration of \njustice, it is punishable, usu. by fine or imprisonment. \nFed. R. Civ. P. 45(e); Fed. R. Crim. P. 42; 18 USCA § 40l. ",
       "e.g.": [],
       "related notable words": [
-        "contumacy"
+        "contumacy",
+        "court"
       ]
     },
     "continuance": {
@@ -122,7 +170,8 @@
       "e.g.": [],
       "related notable words": [
         "recess",
-        "continue"
+        "continue",
+        "court"
       ]
     },
     "court": {
@@ -141,7 +190,9 @@
       "definition": "1. Strictly, the physical con­\nfinement of a person or the detention of a contracting \nparty's property \n2. Broadly, a threat of harm made to compel a person \nto do something against his or her will or judgment; \nesp., a wrongful threat made by one person to compel \na manifestation of seeming assent by another person \nto a transaction without real volition .",
       "usage": "In the field of torts, duress is con­\nsidered a species of fraud in which compulSion takes \nthe place of deceit in causing injury. \n\nDuress consists in actual or threatened violence or impris­\nonment; the subject of it must be the contracting party \nhimself, or his wife, parent, or child; and it must be inflicted \nor threatened by the other party to the contract, or else \nby one acting with his knowledge and for his advantage.\" \nWilliam R. Anson, PrinCiples of the Law ofContract 261-62 \n(Arthur l. Corbin ed., 3d Am. ed. 1919).\nA marriage \nthat is induced by duress is generally voidable\n\nDuress is a recognized \ndefense to a crime, contractual breach, or tort.\n\n",
       "e.g.": [],
-      "related notable words": []
+      "related notable words": [
+        "officer"
+      ]
     },
     "execute": {
       "found on page": 677,
@@ -163,6 +214,19 @@
         "execute",
         "oath",
         "oath of office"
+      ]
+    },
+    "jurisdiction": {
+      "found on page": 955,
+      "time period": "14c",
+      "definition": "1. A government's general power \nto exercise authority over all persons and things within \nits territory; esp., a state's power to create interests that \nwill be recognized under common-law principles as \nvalid in other states <New Jersey's jurisdiction>. [Cases: \nStates C=>1.] 2. A court's power to decide a case or issue \na decree <the constitutional grant of federal-question \njurisdiction>. -\nAlso termed (in sense 2) competent \njurisdiction.; (in both senses) coram judice",
+      "usage": "\"Rules of jurisdiction in a sense speak from a position \noutside the court system and prescribe the authority of \nthe courts within the system. They are to a large extent \nconstitutional rules. The provisions of the U.S. Constitution \nspecify the outer limits of the subject-matter jurisdiction \nof the federal courts and authorize Congress, within those \nlimits, to establish by statute the organization and jurisdic· \ntion of the federal courts. Thus, Article III of the Consti­\ntution defines the judicial power of the United States to \ninclude cases arising under federal law and cases between \nparties of diverse state citizenship as well as other catego­\nries. The U.S. Constitution, particularly the Due Process \nClause, also establishes limits on the jurisdiction of the \nstate courts. These due process limitations traditionally \noperate in two areas: jurisdiction of the subject matter \nand jurisdiction over persons. Within each state, the court \nsystem is established by state constitutional provisions or \nby a combination of such provisions and implementing leg­\nislation, which together define the authority of the various \ncourts Within the system.\" Fleming James Jr., Geoffrey C. \nHazard Jr. & John leubsdorf. Civil Procedure § 2.1, at 55 \n(5th ed. 2001). ",
+      "e.g.": [],
+      "related notable words": [
+        "court",
+        "officer",
+        "common law",
+        "citation"
       ]
     },
     "oath": {
@@ -207,7 +271,7 @@
     "vehicle": {
       "found on page": 0,
       "time period": "",
-      "definition": "1. An instrument oftransportation \nor conveyance. 2. Any conveyance used in transporting \npassengers or things by land, water, or air\n3. ",
+      "definition": "1. An instrument of transportation \nor conveyance. 2. Any conveyance used in transporting \npassengers or things by land, water, or air\n3. ",
       "usage": "",
       "e.g.": [],
       "related notable words": []

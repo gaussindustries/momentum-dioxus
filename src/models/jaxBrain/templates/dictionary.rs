@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap; //hash map YUCK
 use std::fs;
-
+use crate::utils::json_store;
 use crate::models::jaxBrain::node::*;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -128,19 +128,14 @@ pub fn build_graph_from_dictionary(raw: &DictionaryFile) -> Graph {
 
 
 // --------- IO helpers for import/export ----------
-
 pub fn load_dictionary_from_path(path: &str) -> Result<DictionaryFile, String> {
-    let text = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read {}: {}", path, e))?;
-    serde_json::from_str(&text)
-        .map_err(|e| format!("Failed to parse JSON at {}: {}", path, e))
+    json_store::load_json::<DictionaryFile>(path)
+        .map_err(json_store::err_to_string)
 }
 
 pub fn save_dictionary_to_path(path: &str, dict: &DictionaryFile) -> Result<(), String> {
-    let text = serde_json::to_string_pretty(dict)
-        .map_err(|e| format!("Failed to serialize dictionary: {}", e))?;
-    fs::write(path, text)
-        .map_err(|e| format!("Failed to write {}: {}", path, e))
+    json_store::save_json(path, dict)
+        .map_err(json_store::err_to_string)
 }
 /// Layout-dependent radii config.
 /// Keep this small and explicit so each layout can pick different sizes safely.

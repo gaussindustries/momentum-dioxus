@@ -28,3 +28,4 @@ pub use jax_brain::JaxBrain;
 mod graph_generator;
 pub use graph_generator::GraphGenerator;pub mod select;
 pub mod context_menu;
+pub mod accordion;

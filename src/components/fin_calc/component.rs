@@ -1,310 +1,13 @@
+// src/components/fin_calc/component.rs
 use dioxus::prelude::*;
-
-
-//this is more for clever implementation/representation within our calculations 
+use futures_timer::Delay;
+use std::{path::PathBuf, time::Duration};
 use time::OffsetDateTime;
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy)]
-enum Frequency {
-    OneTime,
-    Daily,
-    Weekly,
-    Monthly,
-    XDays(u32),
-    XMonths(u32),
-}
+use crate::models::finCalc::finances::FinancesFile;
+use crate::utils::json_store::{err_to_string, load_json, save_json};
 
-impl Frequency {
-    pub fn label(&self) -> String {
-        match self {
-            Frequency::OneTime    => "One-time".into(),
-            Frequency::Daily      => "Daily".into(),
-            Frequency::Weekly     => "Weekly".into(),
-            Frequency::Monthly    => "Monthly".into(),
-            Frequency::XDays(n)   => format!("Every {n} days"),
-            Frequency::XMonths(n) => format!("Every {n} months"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct TranchePrimitives {
-    created_at: OffsetDateTime,
-    frequency: Frequency,
-    amount: i64,        // cents, or whatever unit you standardize on
-}
-
-impl TranchePrimitives {
-    fn new(amount: i64, frequency: Frequency) -> Self {
-        Self {
-            created_at: OffsetDateTime::now_utc(),
-            frequency,
-            amount,
-        }
-    }
-}
-
-trait Tranche {
-    fn primitives(&self) -> &TranchePrimitives;
-    fn primitives_mut(&mut self) -> &mut TranchePrimitives;
-
-    // -------- Getters --------
-    fn get_frequency(&self) -> Frequency {
-        self.primitives().frequency
-    }
-
-    fn get_amount(&self) -> i64 {
-        self.primitives().amount
-    }
-
-    fn get_created_at(&self) -> OffsetDateTime {
-        self.primitives().created_at
-    }
-
-    // -------- Setters / mutators --------
-    fn set_amount(&mut self, new_amount: i64) {
-        self.primitives_mut().amount = new_amount;
-    }
-
-    fn add_amount(&mut self, delta: i64) {
-        self.primitives_mut().amount += delta;
-    }
-
-    fn subtract_amount(&mut self, delta: i64) {
-        self.primitives_mut().amount -= delta;
-    }
-
-    fn set_frequency(&mut self, freq: Frequency) {
-        self.primitives_mut().frequency = freq;
-    }
-}
-
-
-
-#[derive(Debug, Clone)]
-enum IncomeKind {
-    Hourly {
-        hourly_rate_cents: i64,
-        avg_hours_per_week: f64,
-    },
-    Salary {
-        yearly_cents: i64,
-    },
-    Other,
-}
-
-impl IncomeKind {
-    fn label(&self) -> String {
-        match self {
-            IncomeKind::Hourly { .. } => "Hourly".into(),
-            IncomeKind::Salary { .. } => "Salary".into(),
-            IncomeKind::Other        => "Other".into(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Income {
-    name: String,
-    kind: IncomeKind,
-    data: TranchePrimitives,
-}
-
-impl Income {
-    fn new_hourly(name: impl Into<String>, hourly_rate_cents: i64, avg_hours_per_week: f64) -> Self {
-        // e.g. convert to approximate monthly amount:
-        let weekly = hourly_rate_cents as f64 * avg_hours_per_week;
-        let monthly = (weekly * 52.0 / 12.0).round() as i64;
-
-        Self {
-            name: name.into(),
-            kind: IncomeKind::Hourly {
-                hourly_rate_cents,
-                avg_hours_per_week,
-            },
-            data: TranchePrimitives::new(monthly, Frequency::Monthly),
-        }
-    }
-
-    fn new_salary(name: impl Into<String>, yearly_cents: i64) -> Self {
-        let monthly = yearly_cents / 12;
-        Self {
-            name: name.into(),
-            kind: IncomeKind::Salary { yearly_cents },
-            data: TranchePrimitives::new(monthly, Frequency::Monthly),
-        }
-    }
-}
-
-impl Tranche for Income {
-    fn primitives(&self) -> &TranchePrimitives {
-        &self.data
-    }
-
-    fn primitives_mut(&mut self) -> &mut TranchePrimitives {
-        &mut self.data
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum AssetKind {
-    Hard,   // land, metals, etc
-    Soft,   // fiat, stocks, etc
-}
-
-impl AssetKind {
-    fn label(&self) -> &'static str {
-        match self {
-            AssetKind::Hard => "Hard",
-            AssetKind::Soft => "Soft",
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Asset {
-    name: String,
-    kind: AssetKind,
-    data: TranchePrimitives,
-}
-
-impl Asset {
-    fn new(name: impl Into<String>, kind: AssetKind, amount: i64) -> Self {
-        Self {
-            name: name.into(),
-            kind,
-            // Frequency is basically irrelevant; keep it OneTime for now
-            data: TranchePrimitives::new(amount, Frequency::OneTime),
-        }
-    }
-}
-
-impl Tranche for Asset {
-    fn primitives(&self) -> &TranchePrimitives {
-        &self.data
-    }
-
-    fn primitives_mut(&mut self) -> &mut TranchePrimitives {
-        &mut self.data
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum LiabilityKind {
-    Bill,   // recurring bills
-    Loan,   // fixed-term loans
-    Other,
-}
-
-impl LiabilityKind {
-    fn label(&self) -> &'static str {
-        match self {
-            LiabilityKind::Bill => "Bill",
-            LiabilityKind::Loan => "Loan",
-            LiabilityKind::Other => "Other",
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Liability {
-    name: String,
-    kind: LiabilityKind,
-    data: TranchePrimitives,
-}
-
-impl Liability {
-    fn new(
-        name: impl Into<String>,
-        kind: LiabilityKind,
-        amount: i64,
-        frequency: Frequency,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            kind,
-            data: TranchePrimitives::new(amount, frequency),
-        }
-    }
-}
-
-impl Tranche for Liability {
-    fn primitives(&self) -> &TranchePrimitives {
-        &self.data
-    }
-
-    fn primitives_mut(&mut self) -> &mut TranchePrimitives {
-        &mut self.data
-    }
-}
-
-
-
-
-/*
-so essentially what we're trying to do is a generalized approach to adding Tranches
-witin our portfolio
-
-common things that can be done to a Tranche
-	(once birthed into existence){
-		add 
-		subtract
-		get/set Frequency
-
-	}
-	frequency{
-		get/set Frequency
-		get next date
-	
-	}
-
-	for each implementation there will be respective functions that are exclusive to each type
-	albeit income, assets, liabilities etc
-
-
-	ensuring seamless experience usage:
-	this generalized approach should handle every aspect rather than sphagettification 
-	new Tranche(
-
-	
-	)
-
-
-*/
-
-#[component]
-pub fn FinCalc(
-    // bool with a default: if you don't pass it, it becomes false
-    #[props(default)]
-    overview: bool,
-
-    // // example: optional string prop
-    // #[props(default)]
-    // title: Option<String>,
-) -> Element {
-    rsx! {
-        document::Link { rel: "stylesheet", href: asset!("./style.css") }
-
-		if overview {
-			Overview {}
-		} else {
-			FinCalcDetailed {}
-		}
-    }
-}
-
-
-/*
-	show graph of historical data
-	data {
-		all:
-		assets:
-		expenses:
-		income:
-	
-	}
-
-*/
 fn format_amount(cents: i64) -> String {
     let sign = if cents < 0 { "-" } else { "" };
     let abs = cents.abs();
@@ -313,175 +16,388 @@ fn format_amount(cents: i64) -> String {
     format!("{sign}${dollars}.{rem:02}")
 }
 
+/// Desktop-only: pick a path outside the project folder to avoid dx rebuild loops.
+fn default_finances_path() -> String {
+    // ~/.local/share/<app>/finances.json  (Linux)
+    // (directories handles Windows/macOS equivalents too)
+    if let Some(proj) = directories::ProjectDirs::from("com", "gauss", "momentum-dioxus") {
+        let mut p: PathBuf = proj.data_dir().to_path_buf();
+        p.push("finances.json");
+        return p.to_string_lossy().to_string();
+    }
+    // fallback
+    "finances.json".to_string()
+}
 
-
-
-fn FinCalcDetailed() -> Element {
-    // Incomes, Assets, Liabilities state
-    let mut incomes = use_signal(|| {
-        vec![
-            Income::new_salary("Main Job", 80_000_00),
-            Income::new_hourly("Side Gig", 25_00, 10.0),
-        ]
-    });
-
-    let mut assets = use_signal(|| {
-        vec![
-            Asset::new("Cash (USD)", AssetKind::Soft, 5_000_00),
-            Asset::new("Silver Stack", AssetKind::Hard, 3_000_00),
-        ]
-    });
-
-    let mut liabilities = use_signal(|| {
-        vec![
-            Liability::new("Rent", LiabilityKind::Bill, 1_200_00, Frequency::Monthly),
-            Liability::new("Car Loan", LiabilityKind::Loan, 350_00, Frequency::Monthly),
-        ]
-    });
-	let mut total_liabilities: i64 = liabilities
-					.read()
-					.iter()
-					.map(|l| l.get_amount())
-					.sum();
-
+#[component]
+pub fn FinCalc(#[props(default)] overview: bool) -> Element {
     rsx! {
-        div { class: "flex flex-col gap-8 text-secondary-color border rounded p-6",
-
-            h2 { class: "text-2xl font-bold", "Financial Tranches – Detailed" }
-
-            // Income table
-            section {
-                h3 { class: "text-xl font-semibold mb-2", "Income" }
-
-                table { class: "w-full text-sm border-collapse",
-                    thead {
-                        tr {
-                            th { class: "border-b border-neutral-700 text-left py-1", "Name" }
-                            th { class: "border-b border-neutral-700 text-left py-1", "Kind" }
-                            th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
-                            th { class: "border-b border-neutral-700 text-left py-1", "Frequency" }
-                            th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
-                        }
-                    }
-                    tbody {
-                        for (idx, inc) in incomes.read().iter().enumerate() {
-                            tr {
-                                key: "{idx}",
-                                td { class: "py-1 pr-2", "{inc.name}" }
-                                td { class: "py-1 pr-2", "{inc.kind.label()}" }
-                                td { class: "py-1 pr-2 text-right",
-                                    "{format_amount(inc.get_amount())}"
-                                }
-                                td { class: "py-1 pr-2", "{inc.get_frequency().label()}" }
-                                td { class: "py-1 text-center space-x-1",
-                                    button {
-                                        class: "px-2 border rounded text-xs",
-                                        onclick: {
-                                            let mut incomes = incomes.clone();
-                                            move |_| {
-                                                incomes.write()[idx].add_amount(10_00);
-                                            }
-                                        },
-                                        "+$10"
-                                    }
-                                    button {
-                                        class: "px-2 border rounded text-xs",
-                                        onclick: {
-                                            let mut incomes = incomes.clone();
-                                            move |_| {
-                                                incomes.write()[idx].subtract_amount(10_00);
-                                            }
-                                        },
-                                        "-$10"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Assets table
-            section {
-                h3 { class: "text-xl font-semibold mb-2", "Assets" }
-
-                table { class: "w-full text-sm border-collapse",
-                    thead {
-                        tr {
-                            th { class: "border-b border-neutral-700 text-left py-1", "Name" }
-                            th { class: "border-b border-neutral-700 text-left py-1", "Kind" }
-                            th { class: "border-b border-neutral-700 text-right py-1", "Value" }
-                        }
-                    }
-                    tbody {
-                        for (idx, asset) in assets.read().iter().enumerate() {
-                            tr {
-                                key: "{idx}",
-                                td { class: "py-1 pr-2", "{asset.name}" }
-                                td { class: "py-1 pr-2", "{asset.kind.label()}" }
-                                td { class: "py-1 pr-2 text-right",
-                                    "{format_amount(asset.get_amount())}"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Liabilities table with TOTAL
-			section {
-				// compute total liabilities
-				
-
-				h3 { class: "text-xl font-semibold mb-2",
-					"Liabilities – Total: {format_amount(total_liabilities)}"
-				}
-
-				table { class: "w-full text-sm border-collapse",
-					thead {
-						tr {
-							th { class: "border-b border-neutral-700 text-left py-1", "Name" }
-							th { class: "border-b border-neutral-700 text-left py-1", "Kind" }
-							th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
-							th { class: "border-b border-neutral-700 text-left py-1", "Frequency" }
-						}
-					}
-					tbody {
-						for (idx, liab) in liabilities.read().iter().enumerate() {
-							tr {
-								key: "{idx}",
-								td { class: "py-1 pr-2", "{liab.name}" }
-								td { class: "py-1 pr-2", "{liab.kind.label()}" }
-								td { class: "py-1 pr-2 text-right",
-									"{format_amount(liab.get_amount())}"
-								}
-								td { class: "py-1 pr-2",
-									"{liab.get_frequency().label()}"
-								}
-							}
-						}
-					}
-				}
-			}
-        }
+        document::Link { rel: "stylesheet", href: asset!("./style.css") }
+        if overview { Overview {} } else { FinCalcDetailed {} }
     }
 }
 
-
-/*
-	could very well be for injecting information quickly rather than
-	having to dive into the full detailed version of the program,
-	or rather just call how "things are going", the graphical aspect
-
-	snapshot of assets
-
-*/
-
-fn Overview () -> Element {
-	rsx!{
-        "Overview mode FINCALC"
-
-	}
+fn Overview() -> Element {
+    rsx! { "Overview mode FINCALC" }
 }
 
+fn FinCalcDetailed() -> Element {
+    // File path + state
+    let mut fin_path = use_signal(default_finances_path);
+    let mut fin_state = use_signal(FinancesFile::default);
+    let mut status = use_signal(|| None::<String>);
 
+    // Debounce tick: bump this on any edit
+    let mut save_tick = use_signal(|| 0_u64);
+
+    // ---- Debounced autosave effect ----
+    {
+        let fin_path = fin_path.clone();
+        let fin_state = fin_state.clone();
+        let mut status = status.clone();
+        let save_tick = save_tick.clone();
+
+        use_effect(move || {
+            let tick = *save_tick.read();
+            if tick == 0 {
+                return;
+            }
+
+            spawn(async move {
+                Delay::new(Duration::from_millis(500)).await;
+
+                // If any newer edit happened, bail
+                if *save_tick.read() != tick {
+                    return;
+                }
+
+                let path = fin_path.read().clone();
+                let data = fin_state.read().clone();
+
+                match save_json(&path, &data) {
+                    Ok(()) => status.set(Some(format!("Auto-saved {path}"))),
+                    Err(e) => status.set(Some(err_to_string(e))),
+                }
+            });
+        });
+    }
+
+    // Helper: bump tick (marks dirty)
+    let bump_dirty = {
+        let mut save_tick = save_tick.clone();
+        move || {
+            let t = *save_tick.read();
+            save_tick.set(t + 1);
+        }
+    };
+
+    let on_load = {
+        let mut fin_state = fin_state.clone();
+        let mut status = status.clone();
+        let fin_path = fin_path.clone();
+        move |_| {
+            let path = fin_path.read().clone();
+            match load_json::<FinancesFile>(&path) {
+                Ok(f) => {
+                    fin_state.set(f);
+                    status.set(Some(format!("Loaded {path}")));
+                }
+                Err(e) => status.set(Some(err_to_string(e))),
+            }
+        }
+    };
+
+    let on_save_now = {
+        let fin_state = fin_state.clone();
+        let mut status = status.clone();
+        let fin_path = fin_path.clone();
+        move |_| {
+            let path = fin_path.read().clone();
+            let data = fin_state.read().clone();
+            match save_json(&path, &data) {
+                Ok(()) => status.set(Some(format!("Saved {path}"))),
+                Err(e) => status.set(Some(err_to_string(e))),
+            }
+        }
+    };
+
+    // Add row actions
+    let on_add_asset = {
+        let mut fin_state = fin_state.clone();
+        let mut bump_dirty = bump_dirty.clone();
+        move |_| {
+            fin_state.write().assets.push(crate::models::finCalc::finances::AssetEntry {
+                id: Uuid::new_v4(),
+                name: "new_asset".into(),
+                value: 0,
+            });
+            bump_dirty();
+        }
+    };
+
+    let on_add_income = {
+        let mut fin_state = fin_state.clone();
+        let mut bump_dirty = bump_dirty.clone();
+        move |_| {
+            let today = OffsetDateTime::now_utc().date();
+            fin_state.write().income.push(crate::models::finCalc::finances::IncomeEntry {
+                id: Uuid::new_v4(),
+                date: today,
+                source: "new_income".into(),
+                amount: 0,
+            });
+            bump_dirty();
+        }
+    };
+
+    let on_add_expense = {
+        let mut fin_state = fin_state.clone();
+        let mut bump_dirty = bump_dirty.clone();
+        move |_| {
+            let today = OffsetDateTime::now_utc().date();
+            fin_state.write().expenses.push(crate::models::finCalc::finances::ExpenseEntry {
+                id: Uuid::new_v4(),
+                date: today,
+                category: "new_expense".into(),
+                amount: 0,
+            });
+            bump_dirty();
+        }
+    };
+
+    // Totals
+    let total_assets: i64 = fin_state.read().assets.iter().map(|a| a.value).sum();
+    let total_income: i64 = fin_state.read().income.iter().map(|i| i.amount).sum();
+    let total_expenses: i64 = fin_state.read().expenses.iter().map(|e| e.amount).sum();
+    let net_month_like = total_income - total_expenses;
+
+    rsx! {
+        div { class: "flex flex-col gap-3 text-secondary-color",
+
+            // Path + load/save
+            div { class: "flex items-center gap-2",
+                input {
+                    class: "border px-2 py-1 flex-1 bg-transparent",
+                    value: "{fin_path.read()}",
+                    oninput: {
+                        let mut fin_path = fin_path.clone();
+                        move |evt| fin_path.set(evt.value().to_string())
+                    }
+                }
+                button { class: "px-3 py-1 border rounded", onclick: on_load, "Load" }
+                button { class: "px-3 py-1 border rounded", onclick: on_save_now, "Save" }
+            }
+
+            if let Some(msg) = status.read().as_ref() {
+                p { class: "text-sm text-blue-400", "{msg}" }
+            }
+
+            div { class: "border rounded p-4 space-y-4",
+                h2 { class: "text-2xl font-bold", "Finances (auto-saving JSON)" }
+
+                div { class: "text-sm text-neutral-300",
+                    "Assets: {format_amount(total_assets)} | Income: {format_amount(total_income)} | Expenses: {format_amount(total_expenses)} | Net: {format_amount(net_month_like)}"
+                }
+
+                // -------- Assets --------
+                section { class: "space-y-2",
+                    div { class: "flex items-center justify-between",
+                        h3 { class: "text-xl font-semibold", "Assets" }
+                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_asset, "+ Add asset" }
+                    }
+
+                    table { class: "w-full text-sm border-collapse",
+                        thead {
+                            tr {
+                                th { class: "border-b border-neutral-700 text-left py-1", "Name" }
+                                th { class: "border-b border-neutral-700 text-right py-1", "Value" }
+                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
+                            }
+                        }
+                        tbody {
+                            for (idx, a) in fin_state.read().assets.iter().enumerate() {
+                                tr { key: "{a.id}",
+                                    td { class: "py-1 pr-2",
+                                        input {
+                                            class: "border px-2 py-1 w-full bg-transparent",
+                                            value: "{a.name}",
+                                            oninput: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |evt| {
+                                                    fin_state.write().assets[idx].name = evt.value().to_string();
+                                                    bump_dirty();
+                                                }
+                                            }
+                                        }
+                                    }
+                                    td { class: "py-1 pr-2 text-right", "{format_amount(a.value)}" }
+                                    td { class: "py-1 text-center space-x-1",
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().assets[idx].value += 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "+$10"
+                                        }
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().assets[idx].value -= 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "-$10"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // -------- Income --------
+                section { class: "space-y-2",
+                    div { class: "flex items-center justify-between",
+                        h3 { class: "text-xl font-semibold", "Income" }
+                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_income, "+ Add income" }
+                    }
+
+                    table { class: "w-full text-sm border-collapse",
+                        thead {
+                            tr {
+                                th { class: "border-b border-neutral-700 text-left py-1", "Date" }
+                                th { class: "border-b border-neutral-700 text-left py-1", "Source" }
+                                th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
+                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
+                            }
+                        }
+                        tbody {
+                            for (idx, inc) in fin_state.read().income.iter().enumerate() {
+                                tr { key: "{inc.id}",
+                                    td { class: "py-1 pr-2 text-neutral-300", "{inc.date}" }
+                                    td { class: "py-1 pr-2",
+                                        input {
+                                            class: "border px-2 py-1 w-full bg-transparent",
+                                            value: "{inc.source}",
+                                            oninput: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |evt| {
+                                                    fin_state.write().income[idx].source = evt.value().to_string();
+                                                    bump_dirty();
+                                                }
+                                            }
+                                        }
+                                    }
+                                    td { class: "py-1 pr-2 text-right", "{format_amount(inc.amount)}" }
+                                    td { class: "py-1 text-center space-x-1",
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().income[idx].amount += 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "+$10"
+                                        }
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().income[idx].amount -= 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "-$10"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // -------- Expenses --------
+                section { class: "space-y-2",
+                    div { class: "flex items-center justify-between",
+                        h3 { class: "text-xl font-semibold", "Expenses" }
+                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_expense, "+ Add expense" }
+                    }
+
+                    table { class: "w-full text-sm border-collapse",
+                        thead {
+                            tr {
+                                th { class: "border-b border-neutral-700 text-left py-1", "Date" }
+                                th { class: "border-b border-neutral-700 text-left py-1", "Category" }
+                                th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
+                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
+                            }
+                        }
+                        tbody {
+                            for (idx, ex) in fin_state.read().expenses.iter().enumerate() {
+                                tr { key: "{ex.id}",
+                                    td { class: "py-1 pr-2 text-neutral-300", "{ex.date}" }
+                                    td { class: "py-1 pr-2",
+                                        input {
+                                            class: "border px-2 py-1 w-full bg-transparent",
+                                            value: "{ex.category}",
+                                            oninput: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |evt| {
+                                                    fin_state.write().expenses[idx].category = evt.value().to_string();
+                                                    bump_dirty();
+                                                }
+                                            }
+                                        }
+                                    }
+                                    td { class: "py-1 pr-2 text-right", "{format_amount(ex.amount)}" }
+                                    td { class: "py-1 text-center space-x-1",
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().expenses[idx].amount += 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "+$10"
+                                        }
+                                        button {
+                                            class: "px-2 border rounded text-xs",
+                                            onclick: {
+                                                let mut fin_state = fin_state.clone();
+                                                let mut bump_dirty = bump_dirty.clone();
+                                                move |_| {
+                                                    fin_state.write().expenses[idx].amount -= 10_00;
+                                                    bump_dirty();
+                                                }
+                                            },
+                                            "-$10"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
