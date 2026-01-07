@@ -170,14 +170,16 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
 
                     div { class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-neutral-900/50 p-4 rounded-lg border border-neutral-800",
                         
-                        div { class: "flex flex-col gap-1",
-                            label { class: "text-xs text-neutral-400 font-mono uppercase", "Start Date" }
-                            DatePicker {
-                                // FIX 3: Types now match (Signal<Option<Date>>)
-                                selected_date: start_date,
-                                on_value_change: move |d| start_date.set(d),
-                                DatePickerInput {}
-                            }
+                        div { class: "flex gap-1 justify-center",
+                            div{ 
+								label { class: "text-xs text-neutral-400 font-mono uppercase", "Start Date" }
+								DatePicker {
+									// FIX 3: Types now match (Signal<Option<Date>>)
+									selected_date: start_date,
+									on_value_change: move |d| start_date.set(d),
+									DatePickerInput {}
+								}
+							}
                         }
 
                         div { class: "flex flex-col gap-1",
