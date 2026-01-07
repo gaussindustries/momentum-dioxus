@@ -231,9 +231,6 @@
   .mx-auto {
     margin-inline: auto;
   }
-  .mt-0 {
-    margin-top: calc(var(--spacing) * 0);
-  }
   .mt-0\.5 {
     margin-top: calc(var(--spacing) * 0.5);
   }
@@ -317,9 +314,6 @@
   }
   .border-collapse {
     border-collapse: collapse;
-  }
-  .resize {
-    resize: both;
   }
   .grid-cols-1 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -622,9 +616,6 @@
   .uppercase {
     text-transform: uppercase;
   }
-  .underline {
-    text-decoration-line: underline;
-  }
   .opacity-50 {
     opacity: 50%;
   }
@@ -686,9 +677,9 @@
       border-color: var(--color-blue-500);
     }
   }
-  .md\:col-span-3 {
+  .md\:col-span-2 {
     @media (width >= 48rem) {
-      grid-column: span 3 / span 3;
+      grid-column: span 2 / span 2;
     }
   }
   .md\:grid-cols-2 {

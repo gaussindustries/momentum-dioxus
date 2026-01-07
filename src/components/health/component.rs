@@ -1,5 +1,8 @@
 use dioxus::prelude::*;
-use chrono::{Local, Duration}; // <--- 1. Import Chrono
+use chrono::{Duration, NaiveDate};
+use time::OffsetDateTime;
+
+use crate::components::date_picker::{DatePicker, DatePickerInput};
 
 // --- CONSTANTS & LOGIC ---
 
@@ -35,7 +38,7 @@ impl ActivityLevel {
 #[derive(PartialEq)]
 struct SimulationRow {
     week: usize,
-    date_display: String, // <--- 2. Add date string field
+    date_display: String,
     weight: f64,
     maintenance_cals: f64,
     goal_loss_lbs: f64,
@@ -54,6 +57,7 @@ fn calculate_bmr(weight_lbs: f64, height_in: f64, age: f64, gender: Gender) -> f
 }
 
 fn run_simulation(
+    start_date: NaiveDate,
     start_weight: f64,
     target_weight: f64,
     height: f64,
@@ -66,9 +70,6 @@ fn run_simulation(
     let mut current_weight = start_weight;
     let mut week = 0;
 
-    // 3. Get current date
-    let start_date = Local::now();
-
     if start_weight <= target_weight {
         return vec![];
     }
@@ -76,7 +77,6 @@ fn run_simulation(
     while current_weight > target_weight && week < 150 {
         let bmr = calculate_bmr(current_weight, height, age, gender);
         let tdee = bmr * activity.multiplier();
-
         let loss_lbs = current_weight * percent_loss;
 
         let actual_loss = if current_weight - loss_lbs < target_weight {
@@ -88,9 +88,9 @@ fn run_simulation(
         let daily_deficit = (actual_loss * CALS_PER_LB_FAT) / 7.0;
         let daily_intake = tdee - daily_deficit;
 
-        // 4. Calculate date for this row
+        // Calculate date based on start_date + weeks
         let row_date = start_date + Duration::weeks(week as i64);
-        let date_str = row_date.format("%b %d").to_string(); // e.g. "Jan 06"
+        let date_str = row_date.format("%b %d").to_string();
 
         rows.push(SimulationRow {
             week,
@@ -105,7 +105,6 @@ fn run_simulation(
         week += 1;
     }
 
-    // Final row logic
     let final_bmr = calculate_bmr(current_weight, height, age, gender);
     let final_date = start_date + Duration::weeks(week as i64);
     
@@ -123,6 +122,9 @@ fn run_simulation(
 
 #[component]
 pub fn Health(#[props(default)] overview: bool) -> Element {
+    // FIX 1: Wrap the initial date in Some(...) to match Option<Date> type
+    let mut start_date = use_signal(|| Some(OffsetDateTime::now_utc().date()));
+
     let mut weight = use_signal(|| 215.0);
     let mut target = use_signal(|| 170.0);
     let mut height = use_signal(|| 70.0);
@@ -132,7 +134,17 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
     let mut percent_mode = use_signal(|| 0.01); 
 
     let simulation_data = use_memo(move || {
+        // FIX 2: Unwrap the Option safely. Fallback to today if None.
+        let time_date = start_date.read().unwrap_or_else(|| OffsetDateTime::now_utc().date());
+
+        let chrono_start = NaiveDate::from_ymd_opt(
+            time_date.year(), 
+            time_date.month() as u32, 
+            time_date.day() as u32
+        ).unwrap_or_else(|| NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
+
         run_simulation(
+            chrono_start,
             *weight.read(),
             *target.read(),
             *height.read(),
@@ -156,8 +168,18 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                         "Dynamic Maintenance Planner" 
                     }
 
-                    // --- INPUT GRID (Same as before) ---
                     div { class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-neutral-900/50 p-4 rounded-lg border border-neutral-800",
+                        
+                        div { class: "flex flex-col gap-1",
+                            label { class: "text-xs text-neutral-400 font-mono uppercase", "Start Date" }
+                            DatePicker {
+                                // FIX 3: Types now match (Signal<Option<Date>>)
+                                selected_date: start_date,
+                                on_value_change: move |d| start_date.set(d),
+                                DatePickerInput {}
+                            }
+                        }
+
                         div { class: "flex flex-col gap-1",
                             label { class: "text-xs text-neutral-400 font-mono uppercase", "Current Weight (lbs)" }
                             input { type: "number", class: "bg-neutral-800 p-2 rounded border border-neutral-700 focus:border-blue-500 outline-none", value: "{weight}", oninput: move |e| weight.set(e.value().parse().unwrap_or(0.0)) }
@@ -166,6 +188,7 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                             label { class: "text-xs text-neutral-400 font-mono uppercase", "Target Weight (lbs)" }
                             input { type: "number", class: "bg-neutral-800 p-2 rounded border border-neutral-700 focus:border-blue-500 outline-none", value: "{target}", oninput: move |e| target.set(e.value().parse().unwrap_or(0.0)) }
                         }
+                        
                         div { class: "flex flex-col gap-1",
                             label { class: "text-xs text-neutral-400 font-mono uppercase", "Strategy" }
                              div { class: "flex gap-2 h-full",
@@ -179,6 +202,7 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                                 }
                             }
                         }
+
                         div { class: "flex flex-col gap-1",
                             label { class: "text-xs text-neutral-400 font-mono uppercase", "Height (inches)" }
                             input { type: "number", class: "bg-neutral-800 p-2 rounded border border-neutral-700 focus:border-blue-500 outline-none", value: "{height}", oninput: move |e| height.set(e.value().parse().unwrap_or(0.0)) }
@@ -194,7 +218,7 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                                 option { value: "female", "Female" }
                             }
                         }
-                         div { class: "flex flex-col gap-1 col-span-1 md:col-span-3",
+                         div { class: "flex flex-col gap-1 col-span-1 md:col-span-2",
                             label { class: "text-xs text-neutral-400 font-mono uppercase", "Activity Level" }
                             select { class: "bg-neutral-800 p-2 rounded border border-neutral-700 focus:border-blue-500 outline-none",
                                 onchange: move |e| { match e.value().as_str() { "1" => activity.set(ActivityLevel::LightlyActive), "2" => activity.set(ActivityLevel::ModeratelyActive), "3" => activity.set(ActivityLevel::VeryActive), _ => activity.set(ActivityLevel::Sedentary), } },
@@ -206,7 +230,6 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                         }
                     }
 
-                    // --- RESULTS TABLE ---
                     div { class: "overflow-hidden border border-neutral-700 rounded-lg bg-neutral-900 shadow-xl",
                         div { class: "overflow-x-auto",
                             table { class: "w-full text-left text-sm",
@@ -223,7 +246,6 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                                     for row in simulation_data.read().iter() {
                                         tr { class: "hover:bg-neutral-800/50 transition-colors",
                                             
-                                            // 5. UPDATED WEEK COLUMN
                                             td { class: "p-3",
                                                 div { class: "text-neutral-300 font-mono font-bold", "{row.week}" }
                                                 div { class: "text-neutral-600 text-[10px] uppercase font-mono mt-0.5", "{row.date_display}" }
@@ -256,9 +278,9 @@ pub fn Health(#[props(default)] overview: bool) -> Element {
                             }
                         }
                     }
-
+                    
                     p { class: "text-xs text-neutral-500 max-w-2xl",
-                        "Note: Calculations use the Mifflin-St Jeor equation updated weekly. Dates are projected from today."
+                        "Note: Calculations use the Mifflin-St Jeor equation updated weekly. Change Start Date to re-project."
                     }
                 }
             }
