@@ -16,6 +16,7 @@
 			"focus" : {
 				"triceps" :{
 					"sphynx push ups" : {
+						"caloriesPerHour" :200,
 						"examples" : {
 							"uuid here" :{
 								"link" : true,
@@ -26,6 +27,7 @@
 				},
 				"upper chest" : {
 					"pike push ups" : {
+						"caloriesPerHour" :200,
 						"examples" : {
 							"uuid here" :{
 								"link" : true,
@@ -38,16 +40,60 @@
 		}
 	},
 	"NutritionConstants":{
-		"grass fed beef" : {
-			"90/10":{
-				"protein (g/lb)" : 100,
-				"calories (kcal/lb)" : 810
+		"grass fed / grass finished beef" : {
+			"type":"weight",
+			"unit":"lb",
+			"Ground" :{
+				"90/10":{
+					"calories" : 800,
+					"protein" : 91,
+					"Total Fat": 45,
+					"Saturated Fat": 18,
+					"Monounsaturated Fat": 20,
+					"Carbohydrates": 0
+
+				},
+				"85/15" : {
+					"calories" : 960,
+					"protein" : 85,
+					"Total Fat": 68,
+					"Saturated Fat": 26,
+					"Monounsaturated Fat": 29,
+					"Carbohydrates": 0
+
+				}
 			},
-			"85/15" : {
-				"protein (g/lb)" : 75,
-				"calories (kcal/lb)" : 1150
+			"Chuck Roast" : {
+				"protein" : 300,
+				"calories": 2000
+			}
+		},
+		"free range eggs" : {
+			"type":"quanitity",
+			"unit" : "egg",
+			"whole" : {
+				"calories" : 72,
+				"protein": 6.3,
+				"Total Fat": 5,
+				"Saturated Fat": 1.6,
+				"Monounsaturated Fat": 2,
+				"Polyunsaturated Fat": 0.7,
+				"Carbohydrates": 0.4,
+				"Cholesterol": 0.186
+
+			}
+		},
+		"Jasmine Rice" : {
+			"type" : "weight",
+			"unit" : "cup",
+			"white" : {
+				"calories" : 190,
+				"protein" : 4,
+				"Total Fat": 1,
+				"Carbohydrates": 40
 			}
 		}
+
 	},
 	"diet" :
 	{
