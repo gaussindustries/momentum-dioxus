@@ -4,41 +4,180 @@
 			"overview": ["push" , "abs"]
 		}
 	},
-	"workouts" : {
-		"cardio" : {
-			"run" : {
-				"focus" : [
-					"endurance"
-				]
-			}
-		},
-		"push" : {
-			"focus" : {
-				"triceps" :{
-					"sphynx push ups" : {
-						"caloriesPerHour" :200,
-						"examples" : {
-							"uuid here" :{
-								"link" : true,
-								"fileLocation" : "https://media.tenor.com/_lw152SU9i8AAAAM/kivi-ylea.gif"
-							}
-						}
-					}			
-				},
-				"upper chest" : {
-					"pike push ups" : {
-						"caloriesPerHour" :200,
-						"examples" : {
-							"uuid here" :{
-								"link" : true,
-								"fileLocation" : "https://media.tenor.com/_lw152SU9i8AAAAM/kivi-ylea.gif"
-							}
-						}
-					}
-				}
-			}
-		}
-	},
+	"workouts": {
+        "Cardio": {
+            "focus": {
+                "endurance": {
+                    "Running (Moderate Pace)": {
+                        "caloriesPerHour": 600,
+                        "examples": {
+                            "uuid-1": { "link": true, "fileLocation": "https://media.tenor.com/running.gif" }
+                        }
+                    },
+                    "Jump Rope": {
+                        "caloriesPerHour": 800,
+                        "examples": {
+                            "uuid-2": { "link": true, "fileLocation": "https://media.tenor.com/jumprope.gif" }
+                        }
+                    }
+                },
+                "hiit": {
+                    "Burpees": {
+                        "caloriesPerHour": 700,
+                        "examples": {
+                            "uuid-3": { "link": true, "fileLocation": "https://media.tenor.com/burpees.gif" }
+                        }
+                    }
+                }
+            }
+        },
+        "Push": {
+            "focus": {
+                "triceps": {
+                    "Diamond Push Ups": {
+                        "caloriesPerHour": 300,
+                        "examples": {
+                            "uuid-4": { "link": true, "fileLocation": "https://media.tenor.com/diamond-pushups.gif" }
+                        }
+                    },
+                    "Tricep Dips (Bench/Bar)": {
+                        "caloriesPerHour": 350,
+                        "examples": {
+                            "uuid-5": { "link": true, "fileLocation": "https://media.tenor.com/dips.gif" }
+                        }
+                    }
+                },
+                "chest": {
+                    "Standard Push Ups": {
+                        "caloriesPerHour": 300,
+                        "examples": {
+                            "uuid-6": { "link": true, "fileLocation": "https://media.tenor.com/pushups.gif" }
+                        }
+                    },
+                    "Archer Push Ups": {
+                        "caloriesPerHour": 400,
+                        "examples": {
+                            "uuid-7": { "link": true, "fileLocation": "https://media.tenor.com/archer-pushups.gif" }
+                        }
+                    },
+                    "Pseudo Planche Push Ups": {
+                        "caloriesPerHour": 450,
+                        "examples": {
+                            "uuid-7b": { "link": true, "fileLocation": "https://media.tenor.com/planche.gif" }
+                        }
+                    }
+                },
+                "shoulders": {
+                    "Pike Push Ups": {
+                        "caloriesPerHour": 350,
+                        "examples": {
+                            "uuid-8": { "link": true, "fileLocation": "https://media.tenor.com/pike-pushups.gif" }
+                        }
+                    },
+                    "Handstand Push Ups (Wall)": {
+                        "caloriesPerHour": 500,
+                        "examples": {
+                            "uuid-9": { "link": true, "fileLocation": "https://media.tenor.com/hspu.gif" }
+                        }
+                    }
+                }
+            }
+        },
+        "Pull": {
+            "focus": {
+                "lats": {
+                    "Pull Ups (Wide Grip)": {
+                        "caloriesPerHour": 400,
+                        "examples": {
+                            "uuid-10": { "link": true, "fileLocation": "https://media.tenor.com/pullups.gif" }
+                        }
+                    },
+                    "Australian Rows (Bodyweight Rows)": {
+                        "caloriesPerHour": 300,
+                        "examples": {
+                            "uuid-11": { "link": true, "fileLocation": "https://media.tenor.com/rows.gif" }
+                        }
+                    }
+                },
+                "lower_back": {
+                    "Supermans": {
+                        "caloriesPerHour": 200,
+                        "examples": {
+                            "uuid-12": { "link": true, "fileLocation": "https://media.tenor.com/supermans.gif" }
+                        }
+                    },
+                    "Bridges": {
+                        "caloriesPerHour": 250,
+                        "examples": {
+                            "uuid-13": { "link": true, "fileLocation": "https://media.tenor.com/bridge.gif" }
+                        }
+                    }
+                },
+                "biceps": {
+                    "Chin Ups": {
+                        "caloriesPerHour": 380,
+                        "examples": {
+                            "uuid-14": { "link": true, "fileLocation": "https://media.tenor.com/chinups.gif" }
+                        }
+                    },
+                    "Headbangers": {
+                        "caloriesPerHour": 400,
+                        "examples": {
+                            "uuid-15": { "link": true, "fileLocation": "https://media.tenor.com/headbangers.gif" }
+                        }
+                    }
+                }
+            }
+        },
+        "Legs": {
+            "focus": {
+                "glutes": {
+                    "Glute Bridges (Single Leg)": {
+                        "caloriesPerHour": 300,
+                        "examples": {
+                            "uuid-16": { "link": true, "fileLocation": "https://media.tenor.com/glute-bridge.gif" }
+                        }
+                    },
+                    "Bulgarian Split Squats": {
+                        "caloriesPerHour": 450,
+                        "examples": {
+                            "uuid-17": { "link": true, "fileLocation": "https://media.tenor.com/split-squats.gif" }
+                        }
+                    }
+                },
+                "hamstrings": {
+                    "Nordic Hamstring Curls (Negatives)": {
+                        "caloriesPerHour": 400,
+                        "examples": {
+                            "uuid-18": { "link": true, "fileLocation": "https://media.tenor.com/nordic-curl.gif" }
+                        }
+                    }
+                },
+                "quads": {
+                    "Pistol Squats (Assisted)": {
+                        "caloriesPerHour": 500,
+                        "examples": {
+                            "uuid-19": { "link": true, "fileLocation": "https://media.tenor.com/pistol-squat.gif" }
+                        }
+                    },
+                    "Jump Squats": {
+                        "caloriesPerHour": 600,
+                        "examples": {
+                            "uuid-20": { "link": true, "fileLocation": "https://media.tenor.com/jump-squats.gif" }
+                        }
+                    }
+                },
+                "calves": {
+                    "Calf Raises (Single Leg)": {
+                        "caloriesPerHour": 200,
+                        "examples": {
+                            "uuid-21": { "link": true, "fileLocation": "https://media.tenor.com/calf-raises.gif" }
+                        }
+                    }
+                }
+            }
+        }
+    },
 	"NutritionConstants":{
 		"grass fed / grass finished beef" : {
 			"type":"weight",
@@ -92,9 +231,36 @@
 				"Total Fat": 1,
 				"Carbohydrates": 40
 			}
+		},
+		"Bacon" :{
+			"type": "quanitity",
+			"unit": "piece",
+			"Thick":{
+				"calories" : 76,
+				"protein" : 5,
+				"Total Fat": 6,
+				"Carbohydrates": 0,
+				"Sodium" : 0.300
+			}
+		},
+		"Nutrabio Protein" : {
+			"type" : "weight",
+			"unit" : "grams",
+			"powder" : {
+				"calories" : 0,
+				"protein": 24
+			}
+		},
+		"Supplments" : {
+			"type" : "quanitity",
+			"unit": "capsules",
+			"d3 + k2" : {
+				
+			}
 		}
 
 	},
+			 
 	"diet" :
 	{
 		"protein" : {

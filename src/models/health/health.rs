@@ -6,7 +6,7 @@ pub const DEFAULT_HEALTH_PATH: &str = "assets/data/health/health.json";
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct HealthFile {
     #[serde(default)]
-    pub schedule: HashMap<String, ScheduleDay>,
+    pub schedule: HashMap<String, DaySchedule>,
     #[serde(default)]
     pub workouts: HashMap<String, serde_json::Value>, 
     #[serde(rename = "NutritionConstants", default)]
@@ -16,8 +16,10 @@ pub struct HealthFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ScheduleDay {
-    pub overview: Vec<String>,
+pub struct DaySchedule {
+    #[serde(default)]
+    pub overview: Vec<String>, // e.g. ["push", "abs"]
+    // We will add duration tracking in the UI state, not necessarily JSON yet
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -66,32 +68,24 @@ pub enum FoodVariant {
     Metadata(String), 
 }
 
-// Updated to match your specific JSON keys
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NutritionalInfo {
-    // Handle both old aliases (if any exist in old files) and new keys
     #[serde(alias = "protein (g/lb)")]
     pub protein: f64,
-    
     #[serde(alias = "calories (kcal/lb)")]
     pub calories: f64,
-
-    // New Fields
     #[serde(rename = "Total Fat", default)]
     pub total_fat: f64,
-    
     #[serde(rename = "Saturated Fat", default)]
     pub saturated_fat: f64,
-    
     #[serde(rename = "Monounsaturated Fat", default)]
     pub monounsaturated_fat: f64,
-
     #[serde(rename = "Polyunsaturated Fat", default)]
     pub polyunsaturated_fat: f64,
-
     #[serde(rename = "Carbohydrates", default)]
-    pub carbohydrates: f64, // Usually 0 for meat, but good to have
-
+    pub carbohydrates: f64, 
     #[serde(rename = "Cholesterol", default)]
     pub cholesterol: f64,
+    #[serde(rename = "Sodium", default)]
+    pub sodium: f64,
 }

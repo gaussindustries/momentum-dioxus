@@ -1,7 +1,7 @@
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
+use crate::components::time::use_provide_time;
 use dioxus::prelude::*;
-
 use views::*;
 /// Define a components module that contains all shared components for our app.
 mod components;
@@ -16,7 +16,7 @@ mod utils;
 
 /// The Route enum is used to define the structure of internal routes in our app. All route enums need to derive
 /// the [`Routable`] trait, which provides the necessary methods for the router to work.
-/// 
+///
 /// Each variant represents a different URL pattern that can be matched by the router. If that pattern is matched,
 /// the components for that route will be rendered.
 #[derive(Debug, Clone, Routable, PartialEq)]
@@ -30,10 +30,10 @@ enum Route {
         #[route("/")]
         Overview {},
 
-		#[route("/Goals")]
-        GoalView {},
-				
-		#[route("/Health")]	
+		// #[route("/Goals")]
+  //       GoalView {},
+
+		#[route("/Health")]
 		HealthView {},
 
 		#[route("/FinCalc")]
@@ -42,7 +42,10 @@ enum Route {
 		#[route("/JaxBrain")]
         JaxBrainView {},
 
-	//#[end_layout] 
+        #[route("/Time")]
+        TimeView {},
+
+	//#[end_layout]
     //#[layout()]
 	// you must add a different layout in order to use end_layout
 
@@ -71,6 +74,7 @@ fn main() {
 /// Components should be annotated with `#[component]` to support props, better error messages, and autocomplete
 #[component]
 fn App() -> Element {
+    use_provide_time();
     // The `rsx!` macro lets us define HTML inside of rust. It expands to an Element with all of our HTML inside.
     rsx! {
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,

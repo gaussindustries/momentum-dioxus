@@ -25,3 +25,6 @@ pub use goals::GoalView;
 
 mod jax_brain;
 pub use jax_brain::JaxBrainView;
+
+mod time;
+pub use time::TimeView;

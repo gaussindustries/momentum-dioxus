@@ -1,19 +1,21 @@
+use crate::components::{FinCalc, Health, JaxBrain, Time};
 use dioxus::prelude::*;
-use crate::components::{FinCalc, Goals, Health, JaxBrain};
 /// The Home page component that will be rendered when the current route is `[Route::Home]`
 #[component]
 pub fn Overview() -> Element {
     rsx! {
-		div { //put overview shit here 
-			h1 {class:"text-center", "Overview" }
+        div { //put overview shit here
+            h1 {class:"text-center", "Overview" }
 
-			Goals { overview:true }
+            Time { overview: true }
 
-			FinCalc { overview:true }
+            // Goals { overview:true }
 
-			Health { overview:true }
+            FinCalc { overview:true }
 
-			JaxBrain { overview:true }
-		}
+            Health { overview:true }
+
+            JaxBrain { overview:true }
+        }
     }
 }

@@ -74,7 +74,7 @@
         "amendment"
       ]
     },
-    "affadavit": {
+    "affidavit": {
       "found on page": 94,
       "time period": "16c",
       "definition": "A voluntary declaration of facts written down and sworn to by the declarant before an officer authorized to administer oaths.",
@@ -98,6 +98,19 @@
       "e.g.": [],
       "related notable words": [
         "amend"
+      ]
+    },
+    "arrest": {
+      "found on page": 152,
+      "time period": "14c",
+      "definition": " 1. A seizure or forcible restraint. 2. 1he \ntaking or keeping of a person in custody by legal author­\nity, esp. in response to a criminal charge; specif., the \napprehension of someone for the purpose of securing \nthe administration of the law, esp. of bringing that \nperson before a court.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "warrant",
+        "court",
+        "citation",
+        "officer"
       ]
     },
     "circuit": {
@@ -184,6 +197,16 @@
         "circuit"
       ]
     },
+    "cross-examination": {
+      "found on page": 461,
+      "time period": "18c",
+      "definition": " The questioning of a witness \nat a trial or hearing by the party opposed to the party \nwho called the witness to testify .• The purpose of \ncross-examination is to discredit a witness before the \nfact-finder in any of several ways, as by bringing out \ncontradictions and improbabilities in earlier testimony. \nby suggesting doubts to the witness, and by trapping \nthe witness into admissions that weaken the testimony. \n1he cross-examiner is typically allowed to ask leading \nquestions but is traditionally limited to matters covered \non direct examination and to credibility issues. - Also \ntermed cross-interrogation.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "court"
+      ]
+    },
     "duress": {
       "found on page": 606,
       "time period": "13c",
@@ -216,6 +239,43 @@
         "oath of office"
       ]
     },
+    "executive power": {
+      "found on page": 679,
+      "time period": "17c",
+      "definition": "Constitutional law. The power \nto see that the laws are duly executed and enforced. \n- Under federal law, this power is vested in the Presi­\ndent; in the states, it is vested in the governors. The \nPresident's enumerated powers are found in the U.S. \nConstitution, art. II, § 2; governors' executive powers \nare provided for in state constitutions. The other two \ngreat powers of government are the legislative power \nand the judicial power.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "constitution",
+        "officer",
+        "court",
+        "legislative power"
+      ]
+    },
+    "hearing": {
+      "found on page": 816,
+      "time period": "13c",
+      "definition": "1. A judicial session, usu. open to the \npublic, held for the purpose of deciding issues of fact or \nof law, sometimes with witnesses testifying <the court \nheld a hearing on the admissibility of DNAevidence in \nthe murder case>. 2. Administrative law. Any setting in \nwhich an affected person presents arguments to a deci­\nsion-maker <a hearing on zoning variations>. [Cases: \nAdministrative Law and Procedure C=:>469.] 3. In leg­\nislative practice, any proceeding in which legislators \nor their designees receive testimony about legislation \nthat might be enacted <the shooting victim spoke at \nthe Senate's hearing on gun control>. See PRELIMINARY \nHEARING. [Cases: States \n4. Equity practice. A \ntrial. 5. English law. ORAl. ARGUMENT",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "court"
+      ]
+    },
+    "judicial power": {
+      "found on page": 952,
+      "time period": "16c",
+      "definition": "1. The authority vested in courts \nand judges to hear and decide cases and to make \nbinding judgments on them; the power to construe \nand apply the law when controversies arise over what \nhas been done or not done under it. • Under federal \nlaw, this power is vested in the U.S. Supreme Court and \nin whatever inferior courts Congress establishes. The \nother two great powers ofgovernment are the legislative \npower and the executive power. [Cases: Constitutional \nLaw C:=>2450-2609; Federal Courts C:=> 1.1; Judges C:=> \n24.] 2. A power conferred on a public officer involving \nthe exercise ofjudgment and discretion in deciding \nquestions of right in specific cases affecting personal \nand proprietary interests.• In this sense, the phrase is \ncontrasted with ministerial power.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "legislative power",
+        "executive power",
+        "court",
+        "officer",
+        "constitution"
+      ]
+    },
     "jurisdiction": {
       "found on page": 955,
       "time period": "14c",
@@ -227,6 +287,18 @@
         "officer",
         "common law",
         "citation"
+      ]
+    },
+    "legislative power": {
+      "found on page": 1011,
+      "time period": "17c",
+      "definition": " Constitutional law. The power \nto make laws and to alter them; a legislative body's \nexclusive authority to make, amend, and repeal laws. \n_ Under federal law, this power is vested in Congress, \nconsisting of the House of Representatives and the \nSenate. A legislative body may delegate a portion of \nits lawmaking authority to agencies within the execu­\ntive branch for purposes ofrulemaking and regulation. \nBut a legislative body may not delegate its authority to \nthe judicial branch, and the judicial branch may not \nencroach on legislative duties.",
+      "usage": "",
+      "e.g.": [],
+      "related notable words": [
+        "constitution",
+        "court",
+        "officer"
       ]
     },
     "motion": {
