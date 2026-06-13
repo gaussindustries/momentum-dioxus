@@ -709,6 +709,65 @@ fn slot_to_time(slot: u32) -> NaiveTime {
     NaiveTime::from_hms_opt(total_min / 60, total_min % 60, 0).unwrap()
 }
 
+#[derive(Clone, PartialEq)]
+struct Fill {
+    color: &'static str,
+    title: String,
+    event_id: EventId,
+    first: bool,
+}
+
+/// Mark which planner cells each timed occurrence covers, as a [7][PLAN_SLOTS]
+/// grid for the week starting `start`. Occurrences outside the 6am–11pm window
+/// are clipped to it.
+fn planner_fills(
+    by_date: &BTreeMap<NaiveDate, Vec<Occurrence>>,
+    start: NaiveDate,
+) -> Vec<Vec<Option<Fill>>> {
+    let slot_min = (60 / SLOTS_PER_HOUR) as i32;
+    let base_min = (PLAN_START_HOUR * 60) as i32;
+    let n = PLAN_SLOTS as usize;
+    let mut fills: Vec<Vec<Option<Fill>>> = vec![vec![None; n]; 7];
+    for (date, occs) in by_date {
+        let day = (*date - start).num_days();
+        if !(0..7).contains(&day) {
+            continue;
+        }
+        let day = day as usize;
+        for o in occs {
+            if o.all_day {
+                continue;
+            }
+            let s_min =
+                o.start.time().hour() as i32 * 60 + o.start.time().minute() as i32 - base_min;
+            let e_min = o.end.time().hour() as i32 * 60 + o.end.time().minute() as i32 - base_min;
+            let mut s_slot = s_min.div_euclid(slot_min);
+            let mut e_slot = (e_min + slot_min - 1).div_euclid(slot_min); // ceil
+            if s_slot < 0 {
+                s_slot = 0;
+            }
+            if e_slot > n as i32 {
+                e_slot = n as i32;
+            }
+            if e_slot <= s_slot {
+                e_slot = (s_slot + 1).min(n as i32);
+            }
+            for sl in s_slot..e_slot {
+                let u = sl as usize;
+                if u < n {
+                    fills[day][u] = Some(Fill {
+                        color: o.source.color_var(),
+                        title: o.title.clone(),
+                        event_id: o.event_id,
+                        first: sl == s_slot,
+                    });
+                }
+            }
+        }
+    }
+    fills
+}
+
 #[component]
 fn WeeklyPlanner(store: TimeStore, today: NaiveDate, open_editor: Callback<EditTarget>) -> Element {
     let mut week_anchor = use_signal(|| week_start(today));
@@ -716,6 +775,7 @@ fn WeeklyPlanner(store: TimeStore, today: NaiveDate, open_editor: Callback<EditT
 
     let start = *week_anchor.read();
     let by_date = grouped(&store, start, start + Duration::days(6));
+    let fills = planner_fills(&by_date, start);
 
     let finish_drag = use_callback(move |_: ()| {
         let sel_opt = drag.read().clone();
@@ -741,11 +801,11 @@ fn WeeklyPlanner(store: TimeStore, today: NaiveDate, open_editor: Callback<EditT
     rsx! {
         div { class: "sched-planner",
             div { class: "sched-header",
-                button { class: "sched-btn", onclick: move |_| { let w = *week_anchor.read(); week_anchor.set(w - Duration::days(7)); }, "‹ Prev week" }
+                button { class: "sched-btn", onclick: move |_| { let w = *week_anchor.read(); week_anchor.set(w - Duration::days(7)); }, "\u{2039} Prev week" }
                 h2 { class: "sched-title", "Week of {start.format(\"%b %-d, %Y\")}" }
-                button { class: "sched-btn", onclick: move |_| { let w = *week_anchor.read(); week_anchor.set(w + Duration::days(7)); }, "Next week ›" }
+                button { class: "sched-btn", onclick: move |_| { let w = *week_anchor.read(); week_anchor.set(w + Duration::days(7)); }, "Next week \u{203a}" }
             }
-            p { class: "sched-hint", "Drag across a column to block out time. Release to name it — it'll be saved as a weekly-recurring event." }
+            p { class: "sched-hint", "Drag across an empty column to block out time, then name it (saved as a weekly-recurring event). Click an existing block to edit it." }
 
             div {
                 class: "sched-plan-grid",
@@ -776,11 +836,23 @@ fn WeeklyPlanner(store: TimeStore, today: NaiveDate, open_editor: Callback<EditT
                             for d in 0..7usize {
                                 {
                                     let in_sel = drag.read().map_or(false, |s| s.day == d && slot >= s.start.min(s.end) && slot <= s.start.max(s.end));
+                                    let fill = fills[d][slot as usize].clone();
+                                    let filled = fill.is_some();
+                                    let edit_id = fill.as_ref().map(|f| f.event_id);
+                                    let bg = if !in_sel { fill.as_ref().map(|f| f.color).unwrap_or("") } else { "" };
+                                    let title = fill.as_ref().filter(|f| f.first).map(|f| f.title.clone());
+                                    let cls = if in_sel { "sched-plan-cell sel" } else if filled { "sched-plan-cell filled" } else { "sched-plan-cell" };
                                     rsx! {
                                         div {
                                             key: "c{d}-{slot}",
-                                            class: if in_sel { "sched-plan-cell sel" } else { "sched-plan-cell" },
-                                            onmousedown: move |_| { let mut drag = drag; drag.set(Some(DragSel { day: d, start: slot, end: slot })); },
+                                            class: "{cls}",
+                                            style: if bg.is_empty() { String::new() } else { format!("background:{bg}") },
+                                            onmousedown: move |_| {
+                                                if !filled {
+                                                    let mut drag = drag;
+                                                    drag.set(Some(DragSel { day: d, start: slot, end: slot }));
+                                                }
+                                            },
                                             onmouseenter: move |_| {
                                                 let mut drag = drag;
                                                 let cur = drag.read().clone();
@@ -788,26 +860,19 @@ fn WeeklyPlanner(store: TimeStore, today: NaiveDate, open_editor: Callback<EditT
                                                     if s.day == d { s.end = slot; drag.set(Some(s)); }
                                                 }
                                             },
+                                            onclick: move |_| {
+                                                if let Some(id) = edit_id {
+                                                    if let Some(ev) = store.get(id) {
+                                                        open_editor.call(EditTarget::Edit(ev));
+                                                    }
+                                                }
+                                            },
+                                            if let Some(tt) = title.clone() {
+                                                span { class: "sched-plan-blocktitle", "{tt}" }
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // existing recurring/timed blocks for context (sibling of the grid)
-            div { class: "sched-plan-existing",
-                div { class: "sched-plan-existing-head", "This week" }
-                for (date, occs) in by_date {
-                    for o in occs {
-                        if !o.all_day {
-                            div { key: "{o.event_id}-{o.start}", class: "sched-strip-row",
-                                span { class: "sched-dot", style: "background:{o.source.color_var()}" }
-                                span { class: "sched-strip-date", "{date.format(\"%a\")}" }
-                                span { class: "sched-strip-time", "{time_label(o.start.time())}" }
-                                span { class: "sched-strip-title", "{o.title}" }
                             }
                         }
                     }
