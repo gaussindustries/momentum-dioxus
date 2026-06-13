@@ -147,6 +147,9 @@
 .sched-plan-cell { height: 22px; border-left: 1px solid var(--sched-border); border-bottom: 1px solid rgba(255,255,255,0.04); cursor: crosshair; box-sizing: border-box; }
 .sched-plan-cell:hover { background: var(--sched-surface-2); }
 .sched-plan-cell.sel { background: var(--sched-accent); opacity: 0.7; }
+.sched-plan-cell.filled { cursor: pointer; }
+.sched-plan-cell.filled:hover { filter: brightness(1.1); }
+.sched-plan-blocktitle { display: block; font-size: 0.6rem; line-height: 22px; padding-left: 4px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .sched-plan-existing { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
 
 /* Modal editor */

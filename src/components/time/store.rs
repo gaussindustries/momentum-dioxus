@@ -77,6 +77,14 @@ impl TimeStore {
         events.write().retain(|e| e.id != id);
     }
 
+    /// Remove every event originating from a given sub-app. Used by sub-apps
+    /// (e.g. FinCalc) to re-sync idempotently: clear their old projections,
+    /// then re-add the current set.
+    pub fn remove_by_source(&self, source: EventSource) {
+        let mut events = self.events;
+        events.write().retain(|e| e.source != source);
+    }
+
     pub fn get(&self, id: EventId) -> Option<Event> {
         self.events.read().iter().find(|e| e.id == id).cloned()
     }

@@ -2,32 +2,97 @@
 use dioxus::prelude::*;
 use futures_timer::Delay;
 use std::{path::PathBuf, time::Duration};
-use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::models::finCalc::finances::FinancesFile;
+use crate::components::time::{use_time, Event, EventSource, Freq, Recurrence, When};
+use crate::models::finCalc::finances::{
+    AssetEntry, AssetKind, CashFlow, FinancesFile, Frequency, LiabilityEntry, LiabilityKind,
+};
 use crate::utils::json_store::{err_to_string, load_json, save_json};
+
+// ---------------------------------------------------------------------------
+// Formatting / parsing helpers
+// ---------------------------------------------------------------------------
 
 fn format_amount(cents: i64) -> String {
     let sign = if cents < 0 { "-" } else { "" };
     let abs = cents.abs();
-    let dollars = abs / 100;
-    let rem = abs % 100;
-    format!("{sign}${dollars}.{rem:02}")
+    format!("{sign}${}.{:02}", abs / 100, abs % 100)
 }
 
-/// Desktop-only: pick a path outside the project folder to avoid dx rebuild loops.
+/// Bare value for an editable input (no `$`).
+fn cents_to_input(cents: i64) -> String {
+    let abs = cents.abs();
+    let s = format!("{}.{:02}", abs / 100, abs % 100);
+    if cents < 0 {
+        format!("-{s}")
+    } else {
+        s
+    }
+}
+
+/// Parse a typed dollar string ("45", "45.99", "$1,200.50") into cents.
+fn parse_dollars(s: &str) -> Option<i64> {
+    let cleaned: String = s
+        .trim()
+        .chars()
+        .filter(|c| !matches!(c, '$' | ',' | ' '))
+        .collect();
+    if cleaned.is_empty() {
+        return Some(0);
+    }
+    cleaned
+        .parse::<f64>()
+        .ok()
+        .map(|f| (f * 100.0).round() as i64)
+}
+
+fn parse_iso_date(s: &str) -> Option<time::Date> {
+    let f = time::macros::format_description!("[year]-[month]-[day]");
+    time::Date::parse(s, &f).ok()
+}
+
+fn to_naive(d: time::Date) -> Option<chrono::NaiveDate> {
+    chrono::NaiveDate::from_ymd_opt(d.year(), u8::from(d.month()) as u32, d.day() as u32)
+}
+
+fn freq_to_recurrence(f: Frequency) -> Option<Recurrence> {
+    let (freq, interval) = match f {
+        Frequency::OneTime => return None,
+        Frequency::Daily => (Freq::Daily, 1),
+        Frequency::Weekly => (Freq::Weekly, 1),
+        Frequency::Monthly => (Freq::Monthly, 1),
+        Frequency::Yearly => (Freq::Yearly, 1),
+        Frequency::EveryNDays(n) => (Freq::Daily, n.max(1)),
+        Frequency::EveryNMonths(n) => (Freq::Monthly, n.max(1)),
+    };
+    Some(Recurrence {
+        freq,
+        interval,
+        by_weekday: Vec::new(),
+        count: None,
+        until: None,
+    })
+}
+
+/// Desktop-only path outside the project folder, so saves don't trigger
+/// `dx serve` rebuilds. Matches the scheduler module's convention.
 fn default_finances_path() -> String {
-    // ~/.local/share/<app>/finances.json  (Linux)
-    // (directories handles Windows/macOS equivalents too)
     if let Some(proj) = directories::ProjectDirs::from("com", "gauss", "momentum-dioxus") {
         let mut p: PathBuf = proj.data_dir().to_path_buf();
         p.push("finances.json");
         return p.to_string_lossy().to_string();
     }
-    // fallback
     "finances.json".to_string()
 }
+
+fn short_path(p: &str) -> String {
+    p.rsplit(['/', '\\']).next().unwrap_or(p).to_string()
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
 
 #[component]
 pub fn FinCalc(#[props(default)] overview: bool) -> Element {
@@ -37,366 +102,490 @@ pub fn FinCalc(#[props(default)] overview: bool) -> Element {
     }
 }
 
+/// Compact snapshot for the Overview page. Loads the persisted file once.
 fn Overview() -> Element {
-    rsx! { "Overview mode FINCALC" }
-}
-
-fn FinCalcDetailed() -> Element {
-    // File path + state
-    let mut fin_path = use_signal(default_finances_path);
-    let mut fin_state = use_signal(FinancesFile::default);
-    let mut status = use_signal(|| None::<String>);
-
-    // Debounce tick: bump this on any edit
-    let mut save_tick = use_signal(|| 0_u64);
-
-    // ---- Debounced autosave effect ----
-    {
-        let fin_path = fin_path.clone();
-        let fin_state = fin_state.clone();
-        let mut status = status.clone();
-        let save_tick = save_tick.clone();
-
-        use_effect(move || {
-            let tick = *save_tick.read();
-            if tick == 0 {
-                return;
-            }
-
-            spawn(async move {
-                Delay::new(Duration::from_millis(500)).await;
-
-                // If any newer edit happened, bail
-                if *save_tick.read() != tick {
-                    return;
-                }
-
-                let path = fin_path.read().clone();
-                let data = fin_state.read().clone();
-
-                match save_json(&path, &data) {
-                    Ok(()) => status.set(Some(format!("Auto-saved {path}"))),
-                    Err(e) => status.set(Some(err_to_string(e))),
-                }
-            });
-        });
-    }
-
-    // Helper: bump tick (marks dirty)
-    let bump_dirty = {
-        let mut save_tick = save_tick.clone();
-        move || {
-            let t = *save_tick.read();
-            save_tick.set(t + 1);
-        }
-    };
-
-    let on_load = {
-        let mut fin_state = fin_state.clone();
-        let mut status = status.clone();
-        let fin_path = fin_path.clone();
-        move |_| {
-            let path = fin_path.read().clone();
-            match load_json::<FinancesFile>(&path) {
-                Ok(f) => {
-                    fin_state.set(f);
-                    status.set(Some(format!("Loaded {path}")));
-                }
-                Err(e) => status.set(Some(err_to_string(e))),
-            }
-        }
-    };
-
-    let on_save_now = {
-        let fin_state = fin_state.clone();
-        let mut status = status.clone();
-        let fin_path = fin_path.clone();
-        move |_| {
-            let path = fin_path.read().clone();
-            let data = fin_state.read().clone();
-            match save_json(&path, &data) {
-                Ok(()) => status.set(Some(format!("Saved {path}"))),
-                Err(e) => status.set(Some(err_to_string(e))),
-            }
-        }
-    };
-
-    // Add row actions
-    let on_add_asset = {
-        let mut fin_state = fin_state.clone();
-        let mut bump_dirty = bump_dirty.clone();
-        move |_| {
-            fin_state.write().assets.push(crate::models::finCalc::finances::AssetEntry {
-                id: Uuid::new_v4(),
-                name: "new_asset".into(),
-                value: 0,
-            });
-            bump_dirty();
-        }
-    };
-
-    let on_add_income = {
-        let mut fin_state = fin_state.clone();
-        let mut bump_dirty = bump_dirty.clone();
-        move |_| {
-            let today = OffsetDateTime::now_utc().date();
-            fin_state.write().income.push(crate::models::finCalc::finances::IncomeEntry {
-                id: Uuid::new_v4(),
-                date: today,
-                source: "new_income".into(),
-                amount: 0,
-            });
-            bump_dirty();
-        }
-    };
-
-    let on_add_expense = {
-        let mut fin_state = fin_state.clone();
-        let mut bump_dirty = bump_dirty.clone();
-        move |_| {
-            let today = OffsetDateTime::now_utc().date();
-            fin_state.write().expenses.push(crate::models::finCalc::finances::ExpenseEntry {
-                id: Uuid::new_v4(),
-                date: today,
-                category: "new_expense".into(),
-                amount: 0,
-            });
-            bump_dirty();
-        }
-    };
-
-    // Totals
-    let total_assets: i64 = fin_state.read().assets.iter().map(|a| a.value).sum();
-    let total_income: i64 = fin_state.read().income.iter().map(|i| i.amount).sum();
-    let total_expenses: i64 = fin_state.read().expenses.iter().map(|e| e.amount).sum();
-    let net_month_like = total_income - total_expenses;
+    let snapshot =
+        use_hook(|| load_json::<FinancesFile>(default_finances_path()).unwrap_or_default());
+    let net_worth = snapshot.net_worth();
+    let monthly_net = snapshot.monthly_net();
 
     rsx! {
-        div { class: "flex flex-col gap-3 text-secondary-color",
+        div { class: "flex gap-4 text-secondary-color",
+            div { class: "border rounded p-3 flex-1",
+                div { class: "text-xs uppercase opacity-60", "Net worth" }
+                div { class: "text-xl font-bold", "{format_amount(net_worth)}" }
+            }
+            div { class: "border rounded p-3 flex-1",
+                div { class: "text-xs uppercase opacity-60", "Monthly net" }
+                div {
+                    class: if monthly_net >= 0 { "text-xl font-bold text-green-400" } else { "text-xl font-bold text-red-400" },
+                    "{format_amount(monthly_net)}"
+                }
+            }
+        }
+    }
+}
 
-            // Path + load/save
-            div { class: "flex items-center gap-2",
+// ---------------------------------------------------------------------------
+// Money input: own draft signal so parent re-renders don't disturb typing; the
+// displayed value only reformats on commit (onchange), not per keystroke.
+// ---------------------------------------------------------------------------
+
+#[component]
+fn MoneyInput(cents: i64, on_commit: EventHandler<i64>) -> Element {
+    let mut draft = use_signal(|| cents_to_input(cents));
+    rsx! {
+        input {
+            r#type: "text",
+            class: "border px-2 py-1 w-28 bg-transparent text-right",
+            value: "{draft}",
+            oninput: move |e| draft.set(e.value()),
+            onchange: move |e| {
+                match parse_dollars(&e.value()) {
+                    Some(c) => on_commit.call(c),
+                    None => draft.set(cents_to_input(cents)),
+                }
+            },
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Detailed manager
+// ---------------------------------------------------------------------------
+
+fn FinCalcDetailed() -> Element {
+    let scheduler = use_time();
+
+    let mut fin_path = use_signal(default_finances_path);
+    // Load persisted data at mount, in the initializer (never write a signal
+    // during render).
+    let mut fin_state =
+        use_signal(|| load_json::<FinancesFile>(default_finances_path()).unwrap_or_default());
+    let mut status = use_signal(|| None::<String>);
+    let mut save_tick = use_signal(|| 0_u64);
+
+    // Debounced autosave: any edit bumps the tick; save 600ms after the last.
+    use_effect(move || {
+        let tick = *save_tick.read();
+        if tick == 0 {
+            return;
+        }
+        spawn(async move {
+            Delay::new(Duration::from_millis(600)).await;
+            if *save_tick.peek() != tick {
+                return;
+            }
+            let path = fin_path.peek().clone();
+            let data = fin_state.peek().clone();
+            let mut status = status;
+            match save_json(&path, &data) {
+                Ok(()) => status.set(Some(format!("Auto-saved · {}", short_path(&path)))),
+                Err(e) => status.set(Some(err_to_string(e))),
+            }
+        });
+    });
+
+    let mark_dirty = use_callback(move |_: ()| {
+        let mut t = save_tick;
+        let v = *t.peek();
+        t.set(v + 1);
+    });
+
+    // Headline figures (each read's guard drops at the end of its statement).
+    let net_worth = fin_state.read().net_worth();
+    let total_assets = fin_state.read().total_assets();
+    let total_liab = fin_state.read().total_liabilities();
+    let m_income = fin_state.read().monthly_income();
+    let m_expenses = fin_state.read().monthly_expenses();
+    let m_net = m_income - m_expenses;
+
+    let on_sync = move |_| {
+        scheduler.remove_by_source(EventSource::FinCalc);
+        let st = fin_state.peek();
+        let mut count = 0u32;
+        for (flow, tag) in st
+            .income
+            .iter()
+            .map(|f| (f, "Income"))
+            .chain(st.expenses.iter().map(|f| (f, "Bill")))
+        {
+            if flow.amount == 0 {
+                continue;
+            }
+            let Some(date) = to_naive(flow.date) else {
+                continue;
+            };
+            scheduler.add_event(Event {
+                id: Uuid::nil(),
+                title: format!("{tag}: {} ({})", flow.name, format_amount(flow.amount)),
+                notes: String::new(),
+                when: When::AllDay { date },
+                source: EventSource::FinCalc,
+                recurrence: freq_to_recurrence(flow.frequency),
+                link: Some(flow.id.to_string()),
+            });
+            count += 1;
+        }
+        let mut status = status;
+        status.set(Some(format!("Pushed {count} item(s) to the calendar")));
+    };
+
+    rsx! {
+        div { class: "flex flex-col gap-4 text-secondary-color",
+
+            // ---- Dashboard ------------------------------------------------
+            div { class: "grid grid-cols-2 md:grid-cols-4 gap-3",
+                div { class: "border rounded p-3",
+                    div { class: "text-xs uppercase opacity-60", "Net worth" }
+                    div { class: if net_worth >= 0 { "text-xl font-bold text-green-400" } else { "text-xl font-bold text-red-400" }, "{format_amount(net_worth)}" }
+                }
+                div { class: "border rounded p-3",
+                    div { class: "text-xs uppercase opacity-60", "Monthly net" }
+                    div { class: if m_net >= 0 { "text-xl font-bold text-green-400" } else { "text-xl font-bold text-red-400" }, "{format_amount(m_net)}" }
+                }
+                div { class: "border rounded p-3",
+                    div { class: "text-xs uppercase opacity-60", "Monthly income" }
+                    div { class: "text-xl font-bold text-green-400", "{format_amount(m_income)}" }
+                }
+                div { class: "border rounded p-3",
+                    div { class: "text-xs uppercase opacity-60", "Monthly expenses" }
+                    div { class: "text-xl font-bold text-red-400", "{format_amount(m_expenses)}" }
+                }
+            }
+            div { class: "text-xs opacity-60",
+                "Assets {format_amount(total_assets)} − Liabilities {format_amount(total_liab)}. Income & expenses are normalized to a monthly figure by their frequency."
+            }
+
+            // ---- Assets ---------------------------------------------------
+            section { class: "border rounded p-3 space-y-2",
+                div { class: "flex items-center justify-between",
+                    h3 { class: "text-lg font-semibold", "Assets" }
+                    button {
+                        class: "px-3 py-1 border rounded text-xs",
+                        onclick: move |_| { fin_state.write().assets.push(AssetEntry::new()); mark_dirty.call(()); },
+                        "+ Add asset"
+                    }
+                }
+                table { class: "w-full text-sm border-collapse",
+                    thead { tr {
+                        th { class: "text-left py-1", "Name" }
+                        th { class: "text-left py-1", "Type" }
+                        th { class: "text-right py-1", "Value" }
+                        th { class: "w-8" }
+                    } }
+                    tbody {
+                        for a in fin_state.read().assets.iter().cloned() {
+                            tr { key: "{a.id}",
+                                td { class: "py-1 pr-2",
+                                    input {
+                                        class: "border px-2 py-1 w-full bg-transparent",
+                                        value: "{a.name}",
+                                        oninput: move |e| {
+                                            let v = e.value();
+                                            { let mut st = fin_state.write(); if let Some(x) = st.assets.iter_mut().find(|x| x.id == a.id) { x.name = v; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2",
+                                    select {
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{a.kind.label()}",
+                                        onchange: move |e| {
+                                            let k = AssetKind::from_label(&e.value());
+                                            { let mut st = fin_state.write(); if let Some(x) = st.assets.iter_mut().find(|x| x.id == a.id) { x.kind = k; } }
+                                            mark_dirty.call(());
+                                        },
+                                        for k in AssetKind::ALL { option { value: "{k.label()}", "{k.label()}" } }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right",
+                                    MoneyInput {
+                                        cents: a.value,
+                                        on_commit: move |c| {
+                                            { let mut st = fin_state.write(); if let Some(x) = st.assets.iter_mut().find(|x| x.id == a.id) { x.value = c; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 text-center",
+                                    button {
+                                        class: "px-2 text-red-400",
+                                        onclick: move |_| { fin_state.write().assets.retain(|x| x.id != a.id); mark_dirty.call(()); },
+                                        "✕"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- Liabilities ----------------------------------------------
+            section { class: "border rounded p-3 space-y-2",
+                div { class: "flex items-center justify-between",
+                    h3 { class: "text-lg font-semibold", "Liabilities" }
+                    button {
+                        class: "px-3 py-1 border rounded text-xs",
+                        onclick: move |_| { fin_state.write().liabilities.push(LiabilityEntry::new()); mark_dirty.call(()); },
+                        "+ Add liability"
+                    }
+                }
+                table { class: "w-full text-sm border-collapse",
+                    thead { tr {
+                        th { class: "text-left py-1", "Name" }
+                        th { class: "text-left py-1", "Type" }
+                        th { class: "text-right py-1", "Balance" }
+                        th { class: "w-8" }
+                    } }
+                    tbody {
+                        for l in fin_state.read().liabilities.iter().cloned() {
+                            tr { key: "{l.id}",
+                                td { class: "py-1 pr-2",
+                                    input {
+                                        class: "border px-2 py-1 w-full bg-transparent",
+                                        value: "{l.name}",
+                                        oninput: move |e| {
+                                            let v = e.value();
+                                            { let mut st = fin_state.write(); if let Some(x) = st.liabilities.iter_mut().find(|x| x.id == l.id) { x.name = v; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2",
+                                    select {
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{l.kind.label()}",
+                                        onchange: move |e| {
+                                            let k = LiabilityKind::from_label(&e.value());
+                                            { let mut st = fin_state.write(); if let Some(x) = st.liabilities.iter_mut().find(|x| x.id == l.id) { x.kind = k; } }
+                                            mark_dirty.call(());
+                                        },
+                                        for k in LiabilityKind::ALL { option { value: "{k.label()}", "{k.label()}" } }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right",
+                                    MoneyInput {
+                                        cents: l.balance,
+                                        on_commit: move |c| {
+                                            { let mut st = fin_state.write(); if let Some(x) = st.liabilities.iter_mut().find(|x| x.id == l.id) { x.balance = c; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 text-center",
+                                    button {
+                                        class: "px-2 text-red-400",
+                                        onclick: move |_| { fin_state.write().liabilities.retain(|x| x.id != l.id); mark_dirty.call(()); },
+                                        "✕"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- Income ---------------------------------------------------
+            section { class: "border rounded p-3 space-y-2",
+                div { class: "flex items-center justify-between",
+                    h3 { class: "text-lg font-semibold", "Income" }
+                    button {
+                        class: "px-3 py-1 border rounded text-xs",
+                        onclick: move |_| { fin_state.write().income.push(CashFlow::new("New income")); mark_dirty.call(()); },
+                        "+ Add income"
+                    }
+                }
+                table { class: "w-full text-sm border-collapse",
+                    thead { tr {
+                        th { class: "text-left py-1", "Name" }
+                        th { class: "text-right py-1", "Amount" }
+                        th { class: "text-left py-1 pl-2", "Frequency" }
+                        th { class: "text-left py-1 pl-2", "Next date" }
+                        th { class: "text-right py-1", "Per month" }
+                        th { class: "w-8" }
+                    } }
+                    tbody {
+                        for f in fin_state.read().income.iter().cloned() {
+                            tr { key: "{f.id}",
+                                td { class: "py-1 pr-2",
+                                    input {
+                                        class: "border px-2 py-1 w-full bg-transparent",
+                                        value: "{f.name}",
+                                        oninput: move |e| {
+                                            let v = e.value();
+                                            { let mut st = fin_state.write(); if let Some(x) = st.income.iter_mut().find(|x| x.id == f.id) { x.name = v; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right",
+                                    MoneyInput {
+                                        cents: f.amount,
+                                        on_commit: move |amt| {
+                                            { let mut st = fin_state.write(); if let Some(x) = st.income.iter_mut().find(|x| x.id == f.id) { x.amount = amt; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pl-2",
+                                    select {
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{f.frequency.label()}",
+                                        onchange: move |e| {
+                                            let fr = Frequency::from_label(&e.value());
+                                            { let mut st = fin_state.write(); if let Some(x) = st.income.iter_mut().find(|x| x.id == f.id) { x.frequency = fr; } }
+                                            mark_dirty.call(());
+                                        },
+                                        for fr in Frequency::UI { option { value: "{fr.label()}", "{fr.label()}" } }
+                                    }
+                                }
+                                td { class: "py-1 pl-2",
+                                    input {
+                                        r#type: "date",
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{f.date}",
+                                        onchange: move |e| {
+                                            if let Some(d) = parse_iso_date(&e.value()) {
+                                                { let mut st = fin_state.write(); if let Some(x) = st.income.iter_mut().find(|x| x.id == f.id) { x.date = d; } }
+                                                mark_dirty.call(());
+                                            }
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right opacity-70", "{format_amount(f.per_month_cents())}" }
+                                td { class: "py-1 text-center",
+                                    button {
+                                        class: "px-2 text-red-400",
+                                        onclick: move |_| { fin_state.write().income.retain(|x| x.id != f.id); mark_dirty.call(()); },
+                                        "✕"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- Expenses -------------------------------------------------
+            section { class: "border rounded p-3 space-y-2",
+                div { class: "flex items-center justify-between",
+                    h3 { class: "text-lg font-semibold", "Expenses" }
+                    button {
+                        class: "px-3 py-1 border rounded text-xs",
+                        onclick: move |_| { fin_state.write().expenses.push(CashFlow::new("New expense")); mark_dirty.call(()); },
+                        "+ Add expense"
+                    }
+                }
+                table { class: "w-full text-sm border-collapse",
+                    thead { tr {
+                        th { class: "text-left py-1", "Name" }
+                        th { class: "text-right py-1", "Amount" }
+                        th { class: "text-left py-1 pl-2", "Frequency" }
+                        th { class: "text-left py-1 pl-2", "Next date" }
+                        th { class: "text-right py-1", "Per month" }
+                        th { class: "w-8" }
+                    } }
+                    tbody {
+                        for f in fin_state.read().expenses.iter().cloned() {
+                            tr { key: "{f.id}",
+                                td { class: "py-1 pr-2",
+                                    input {
+                                        class: "border px-2 py-1 w-full bg-transparent",
+                                        value: "{f.name}",
+                                        oninput: move |e| {
+                                            let v = e.value();
+                                            { let mut st = fin_state.write(); if let Some(x) = st.expenses.iter_mut().find(|x| x.id == f.id) { x.name = v; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right",
+                                    MoneyInput {
+                                        cents: f.amount,
+                                        on_commit: move |amt| {
+                                            { let mut st = fin_state.write(); if let Some(x) = st.expenses.iter_mut().find(|x| x.id == f.id) { x.amount = amt; } }
+                                            mark_dirty.call(());
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pl-2",
+                                    select {
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{f.frequency.label()}",
+                                        onchange: move |e| {
+                                            let fr = Frequency::from_label(&e.value());
+                                            { let mut st = fin_state.write(); if let Some(x) = st.expenses.iter_mut().find(|x| x.id == f.id) { x.frequency = fr; } }
+                                            mark_dirty.call(());
+                                        },
+                                        for fr in Frequency::UI { option { value: "{fr.label()}", "{fr.label()}" } }
+                                    }
+                                }
+                                td { class: "py-1 pl-2",
+                                    input {
+                                        r#type: "date",
+                                        class: "border px-1 py-1 bg-transparent",
+                                        value: "{f.date}",
+                                        onchange: move |e| {
+                                            if let Some(d) = parse_iso_date(&e.value()) {
+                                                { let mut st = fin_state.write(); if let Some(x) = st.expenses.iter_mut().find(|x| x.id == f.id) { x.date = d; } }
+                                                mark_dirty.call(());
+                                            }
+                                        }
+                                    }
+                                }
+                                td { class: "py-1 pr-2 text-right opacity-70", "{format_amount(f.per_month_cents())}" }
+                                td { class: "py-1 text-center",
+                                    button {
+                                        class: "px-2 text-red-400",
+                                        onclick: move |_| { fin_state.write().expenses.retain(|x| x.id != f.id); mark_dirty.call(()); },
+                                        "✕"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- File controls --------------------------------------------
+            div { class: "flex items-center gap-2 text-xs pt-2 border-t border-neutral-700",
                 input {
                     class: "border px-2 py-1 flex-1 bg-transparent",
                     value: "{fin_path.read()}",
-                    oninput: {
-                        let mut fin_path = fin_path.clone();
-                        move |evt| fin_path.set(evt.value().to_string())
-                    }
+                    oninput: move |e| fin_path.set(e.value()),
                 }
-                button { class: "px-3 py-1 border rounded", onclick: on_load, "Load" }
-                button { class: "px-3 py-1 border rounded", onclick: on_save_now, "Save" }
+                button {
+                    class: "px-3 py-1 border rounded",
+                    onclick: move |_| {
+                        let path = fin_path.peek().clone();
+                        let mut status = status;
+                        match load_json::<FinancesFile>(&path) {
+                            Ok(f) => { fin_state.set(f); status.set(Some(format!("Loaded {}", short_path(&path)))); }
+                            Err(e) => status.set(Some(err_to_string(e))),
+                        }
+                    },
+                    "Load"
+                }
+                button {
+                    class: "px-3 py-1 border rounded",
+                    onclick: move |_| {
+                        let path = fin_path.peek().clone();
+                        let data = fin_state.peek().clone();
+                        let mut status = status;
+                        match save_json(&path, &data) {
+                            Ok(()) => status.set(Some(format!("Saved {}", short_path(&path)))),
+                            Err(e) => status.set(Some(err_to_string(e))),
+                        }
+                    },
+                    "Save now"
+                }
+                button { class: "px-3 py-1 border rounded", onclick: on_sync, "Sync to calendar" }
             }
 
             if let Some(msg) = status.read().as_ref() {
-                p { class: "text-sm text-blue-400", "{msg}" }
-            }
-
-            div { class: "border rounded p-4 space-y-4",
-                h2 { class: "text-2xl font-bold", "Finances (auto-saving JSON)" }
-
-                div { class: "text-sm text-neutral-300",
-                    "Assets: {format_amount(total_assets)} | Income: {format_amount(total_income)} | Expenses: {format_amount(total_expenses)} | Net: {format_amount(net_month_like)}"
-                }
-
-                // -------- Assets --------
-                section { class: "space-y-2",
-                    div { class: "flex items-center justify-between",
-                        h3 { class: "text-xl font-semibold", "Assets" }
-                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_asset, "+ Add asset" }
-                    }
-
-                    table { class: "w-full text-sm border-collapse",
-                        thead {
-                            tr {
-                                th { class: "border-b border-neutral-700 text-left py-1", "Name" }
-                                th { class: "border-b border-neutral-700 text-right py-1", "Value" }
-                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
-                            }
-                        }
-                        tbody {
-                            for (idx, a) in fin_state.read().assets.iter().enumerate() {
-                                tr { key: "{a.id}",
-                                    td { class: "py-1 pr-2",
-                                        input {
-                                            class: "border px-2 py-1 w-full bg-transparent",
-                                            value: "{a.name}",
-                                            oninput: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |evt| {
-                                                    fin_state.write().assets[idx].name = evt.value().to_string();
-                                                    bump_dirty();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    td { class: "py-1 pr-2 text-right", "{format_amount(a.value)}" }
-                                    td { class: "py-1 text-center space-x-1",
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().assets[idx].value += 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "+$10"
-                                        }
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().assets[idx].value -= 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "-$10"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // -------- Income --------
-                section { class: "space-y-2",
-                    div { class: "flex items-center justify-between",
-                        h3 { class: "text-xl font-semibold", "Income" }
-                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_income, "+ Add income" }
-                    }
-
-                    table { class: "w-full text-sm border-collapse",
-                        thead {
-                            tr {
-                                th { class: "border-b border-neutral-700 text-left py-1", "Date" }
-                                th { class: "border-b border-neutral-700 text-left py-1", "Source" }
-                                th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
-                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
-                            }
-                        }
-                        tbody {
-                            for (idx, inc) in fin_state.read().income.iter().enumerate() {
-                                tr { key: "{inc.id}",
-                                    td { class: "py-1 pr-2 text-neutral-300", "{inc.date}" }
-                                    td { class: "py-1 pr-2",
-                                        input {
-                                            class: "border px-2 py-1 w-full bg-transparent",
-                                            value: "{inc.source}",
-                                            oninput: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |evt| {
-                                                    fin_state.write().income[idx].source = evt.value().to_string();
-                                                    bump_dirty();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    td { class: "py-1 pr-2 text-right", "{format_amount(inc.amount)}" }
-                                    td { class: "py-1 text-center space-x-1",
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().income[idx].amount += 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "+$10"
-                                        }
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().income[idx].amount -= 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "-$10"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // -------- Expenses --------
-                section { class: "space-y-2",
-                    div { class: "flex items-center justify-between",
-                        h3 { class: "text-xl font-semibold", "Expenses" }
-                        button { class: "px-3 py-1 border rounded text-xs", onclick: on_add_expense, "+ Add expense" }
-                    }
-
-                    table { class: "w-full text-sm border-collapse",
-                        thead {
-                            tr {
-                                th { class: "border-b border-neutral-700 text-left py-1", "Date" }
-                                th { class: "border-b border-neutral-700 text-left py-1", "Category" }
-                                th { class: "border-b border-neutral-700 text-right py-1", "Amount" }
-                                th { class: "border-b border-neutral-700 text-center py-1", "Adjust" }
-                            }
-                        }
-                        tbody {
-                            for (idx, ex) in fin_state.read().expenses.iter().enumerate() {
-                                tr { key: "{ex.id}",
-                                    td { class: "py-1 pr-2 text-neutral-300", "{ex.date}" }
-                                    td { class: "py-1 pr-2",
-                                        input {
-                                            class: "border px-2 py-1 w-full bg-transparent",
-                                            value: "{ex.category}",
-                                            oninput: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |evt| {
-                                                    fin_state.write().expenses[idx].category = evt.value().to_string();
-                                                    bump_dirty();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    td { class: "py-1 pr-2 text-right", "{format_amount(ex.amount)}" }
-                                    td { class: "py-1 text-center space-x-1",
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().expenses[idx].amount += 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "+$10"
-                                        }
-                                        button {
-                                            class: "px-2 border rounded text-xs",
-                                            onclick: {
-                                                let mut fin_state = fin_state.clone();
-                                                let mut bump_dirty = bump_dirty.clone();
-                                                move |_| {
-                                                    fin_state.write().expenses[idx].amount -= 10_00;
-                                                    bump_dirty();
-                                                }
-                                            },
-                                            "-$10"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                p { class: "text-xs text-blue-400", "{msg}" }
             }
         }
     }
