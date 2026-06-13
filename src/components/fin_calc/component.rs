@@ -160,14 +160,21 @@ fn MoneyInput(cents: i64, on_commit: EventHandler<i64>) -> Element {
 
 #[derive(Clone, Copy, PartialEq)]
 enum PieMode {
+    All,
     Expenses,
     Income,
     Assets,
 }
 impl PieMode {
-    const ALL: [PieMode; 3] = [PieMode::Expenses, PieMode::Income, PieMode::Assets];
+    const ALL: [PieMode; 4] = [
+        PieMode::All,
+        PieMode::Expenses,
+        PieMode::Income,
+        PieMode::Assets,
+    ];
     fn label(&self) -> &'static str {
         match self {
+            PieMode::All => "All",
             PieMode::Expenses => "Expenses",
             PieMode::Income => "Income",
             PieMode::Assets => "Assets",
@@ -402,12 +409,18 @@ fn FinCalcDetailed() -> Element {
     let m_net = m_income - m_expenses;
 
     // ---- Chart data -------------------------------------------------------
-    let pie_mode = use_signal(|| PieMode::Expenses);
+    let pie_mode = use_signal(|| PieMode::All);
     let line_mode = use_signal(|| LineMode::NetWorth);
 
     let (pie_slices, pie_total) = {
         let st = fin_state.read();
         let items: Vec<(String, i64)> = match *pie_mode.read() {
+            PieMode::All => vec![
+                ("Income /mo".to_string(), st.monthly_income()),
+                ("Expenses /mo".to_string(), st.monthly_expenses()),
+                ("Assets".to_string(), st.total_assets()),
+                ("Liabilities".to_string(), st.total_liabilities()),
+            ],
             PieMode::Expenses => st
                 .expenses
                 .iter()
