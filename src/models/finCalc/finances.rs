@@ -225,6 +225,9 @@ pub struct FinancesFile {
     pub income: Vec<CashFlow>,
     #[serde(default)]
     pub expenses: Vec<CashFlow>,
+    /// Dated snapshots for the trend chart. One point per calendar day.
+    #[serde(default)]
+    pub history: Vec<Snapshot>,
 }
 
 impl FinancesFile {
@@ -245,6 +248,21 @@ impl FinancesFile {
     }
     pub fn monthly_net(&self) -> i64 {
         self.monthly_income() - self.monthly_expenses()
+    }
+
+    /// Capture today's figures as a history point. Upserts: if the most recent
+    /// point is already today's, it's overwritten, so we keep one point per day.
+    pub fn record_snapshot(&mut self) {
+        let snap = Snapshot {
+            date: today(),
+            net_worth: self.net_worth(),
+            monthly_income: self.monthly_income(),
+            monthly_expenses: self.monthly_expenses(),
+        };
+        match self.history.last_mut() {
+            Some(last) if last.date == snap.date => *last = snap,
+            _ => self.history.push(snap),
+        }
     }
 }
 
@@ -327,5 +345,21 @@ impl CashFlow {
     /// This flow's contribution to a monthly budget, in cents.
     pub fn per_month_cents(&self) -> i64 {
         (self.amount as f64 * self.frequency.per_month()).round() as i64
+    }
+}
+
+/// A dated point for the trend chart. Money fields are plain cents (they're
+/// derived figures, not user-entered, so they skip the flexible money parser).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Snapshot {
+    pub date: Date,
+    pub net_worth: i64,
+    pub monthly_income: i64,
+    pub monthly_expenses: i64,
+}
+
+impl Snapshot {
+    pub fn take_home(&self) -> i64 {
+        self.monthly_income - self.monthly_expenses
     }
 }

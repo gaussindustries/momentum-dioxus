@@ -90,6 +90,10 @@ fn short_path(p: &str) -> String {
     p.rsplit(['/', '\\']).next().unwrap_or(p).to_string()
 }
 
+fn fmt_short_date(d: time::Date) -> String {
+    format!("{}/{}", u8::from(d.month()), d.day())
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -151,6 +155,200 @@ fn MoneyInput(cents: i64, on_commit: EventHandler<i64>) -> Element {
 }
 
 // ---------------------------------------------------------------------------
+// Charts (hand-rendered SVG — no JS chart deps in a desktop webview)
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, PartialEq)]
+enum PieMode {
+    Expenses,
+    Income,
+    Assets,
+}
+impl PieMode {
+    const ALL: [PieMode; 3] = [PieMode::Expenses, PieMode::Income, PieMode::Assets];
+    fn label(&self) -> &'static str {
+        match self {
+            PieMode::Expenses => "Expenses",
+            PieMode::Income => "Income",
+            PieMode::Assets => "Assets",
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum LineMode {
+    NetWorth,
+    TakeHome,
+    Future,
+}
+impl LineMode {
+    const ALL: [LineMode; 3] = [LineMode::NetWorth, LineMode::TakeHome, LineMode::Future];
+    fn label(&self) -> &'static str {
+        match self {
+            LineMode::NetWorth => "Net worth",
+            LineMode::TakeHome => "Take-home",
+            LineMode::Future => "Future",
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct PieSlice {
+    d: String,
+    color: String,
+    label: String,
+    note: String,
+    full: bool,
+}
+
+/// Turn (label, cents) pairs into renderable pie slices. Returns the slices and
+/// the positive total (0 ⇒ nothing to draw).
+fn build_pie(items: Vec<(String, i64)>) -> (Vec<PieSlice>, i64) {
+    const PALETTE: [&str; 8] = [
+        "#60a5fa", "#f87171", "#34d399", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee", "#f472b6",
+    ];
+    let total: i64 = items.iter().map(|(_, v)| *v).filter(|v| *v > 0).sum();
+    let mut slices = Vec::new();
+    if total <= 0 {
+        return (slices, 0);
+    }
+    let (cx, cy, r) = (100.0_f64, 100.0_f64, 90.0_f64);
+    let mut a0 = -std::f64::consts::FRAC_PI_2; // start at 12 o'clock
+    let mut idx = 0usize;
+    for (label, value) in items {
+        if value <= 0 {
+            continue;
+        }
+        let frac = value as f64 / total as f64;
+        let a1 = a0 + frac * std::f64::consts::TAU;
+        let color = PALETTE[idx % PALETTE.len()].to_string();
+        idx += 1;
+        let full = frac >= 0.999;
+        let d = if full {
+            String::new()
+        } else {
+            let (x1, y1) = (cx + r * a0.cos(), cy + r * a0.sin());
+            let (x2, y2) = (cx + r * a1.cos(), cy + r * a1.sin());
+            let large = if (a1 - a0) > std::f64::consts::PI {
+                1
+            } else {
+                0
+            };
+            format!(
+                "M {cx:.2} {cy:.2} L {x1:.2} {y1:.2} A {r:.2} {r:.2} 0 {large} 1 {x2:.2} {y2:.2} Z"
+            )
+        };
+        let note = format!("{} · {:.0}%", format_amount(value), frac * 100.0);
+        slices.push(PieSlice {
+            d,
+            color,
+            label,
+            note,
+            full,
+        });
+        a0 = a1;
+    }
+    (slices, total)
+}
+
+#[component]
+fn PieChart(slices: Vec<PieSlice>) -> Element {
+    rsx! {
+        div { class: "flex gap-3 items-center flex-wrap",
+            svg { width: "150", height: "150", view_box: "0 0 200 200",
+                for (i, s) in slices.iter().enumerate() {
+                    if s.full {
+                        circle { key: "{i}", cx: "100", cy: "100", r: "90", fill: "{s.color}" }
+                    } else {
+                        path { key: "{i}", d: "{s.d}", fill: "{s.color}", stroke: "#0a0a0a", stroke_width: "1" }
+                    }
+                }
+            }
+            div { class: "flex flex-col gap-1",
+                for (i, s) in slices.iter().enumerate() {
+                    div { key: "{i}", class: "flex items-center gap-2 text-xs",
+                        span { style: "width:10px;height:10px;border-radius:2px;display:inline-block;background:{s.color}" }
+                        span { "{s.label}" }
+                        span { class: "opacity-60", "{s.note}" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct Dot {
+    cx: String,
+    cy: String,
+}
+
+#[component]
+fn LineChart(points: Vec<(String, f64)>, color: String) -> Element {
+    if points.is_empty() {
+        return rsx! {
+            div { class: "text-xs opacity-60 p-6 text-center",
+                "No history yet — edit a value or hit “Record point”, then check back over the coming days."
+            }
+        };
+    }
+
+    let (left, right, top, bottom) = (46.0_f64, 312.0_f64, 12.0_f64, 128.0_f64);
+    let n = points.len();
+    let mut mn = f64::INFINITY;
+    let mut mx = f64::NEG_INFINITY;
+    for (_, v) in &points {
+        mn = mn.min(*v);
+        mx = mx.max(*v);
+    }
+    if (mx - mn).abs() < 1e-9 {
+        mn -= 1.0;
+        mx += 1.0;
+    }
+    let x_at = |i: usize| {
+        if n == 1 {
+            (left + right) / 2.0
+        } else {
+            left + i as f64 * (right - left) / (n as f64 - 1.0)
+        }
+    };
+    let y_at = |v: f64| bottom - (v - mn) / (mx - mn) * (bottom - top);
+
+    let poly: String = points
+        .iter()
+        .enumerate()
+        .map(|(i, (_, v))| format!("{:.1},{:.1}", x_at(i), y_at(*v)))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let dots: Vec<Dot> = points
+        .iter()
+        .enumerate()
+        .map(|(i, (_, v))| Dot {
+            cx: format!("{:.1}", x_at(i)),
+            cy: format!("{:.1}", y_at(*v)),
+        })
+        .collect();
+    let y_top = format_amount(mx as i64);
+    let y_bot = format_amount(mn as i64);
+    let x_first = points.first().unwrap().0.clone();
+    let x_last = points.last().unwrap().0.clone();
+
+    rsx! {
+        svg { width: "100%", height: "150", view_box: "0 0 320 160",
+            line { x1: "46", y1: "12", x2: "46", y2: "128", stroke: "#444", stroke_width: "1" }
+            line { x1: "46", y1: "128", x2: "312", y2: "128", stroke: "#444", stroke_width: "1" }
+            polyline { points: "{poly}", fill: "none", stroke: "{color}", stroke_width: "2" }
+            for (i, dot) in dots.iter().enumerate() {
+                circle { key: "{i}", cx: "{dot.cx}", cy: "{dot.cy}", r: "2.5", fill: "{color}" }
+            }
+            text { x: "4", y: "16", fill: "#888", font_size: "9", "{y_top}" }
+            text { x: "4", y: "128", fill: "#888", font_size: "9", "{y_bot}" }
+            text { x: "46", y: "142", fill: "#888", font_size: "9", "{x_first}" }
+            text { x: "268", y: "142", fill: "#888", font_size: "9", "{x_last}" }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Detailed manager
 // ---------------------------------------------------------------------------
 
@@ -177,7 +375,10 @@ fn FinCalcDetailed() -> Element {
                 return;
             }
             let path = fin_path.peek().clone();
-            let data = fin_state.peek().clone();
+            let mut data = fin_state.peek().clone();
+            data.record_snapshot();
+            let mut fin_state = fin_state;
+            fin_state.set(data.clone());
             let mut status = status;
             match save_json(&path, &data) {
                 Ok(()) => status.set(Some(format!("Auto-saved · {}", short_path(&path)))),
@@ -199,6 +400,76 @@ fn FinCalcDetailed() -> Element {
     let m_income = fin_state.read().monthly_income();
     let m_expenses = fin_state.read().monthly_expenses();
     let m_net = m_income - m_expenses;
+
+    // ---- Chart data -------------------------------------------------------
+    let pie_mode = use_signal(|| PieMode::Expenses);
+    let line_mode = use_signal(|| LineMode::NetWorth);
+
+    let (pie_slices, pie_total) = {
+        let st = fin_state.read();
+        let items: Vec<(String, i64)> = match *pie_mode.read() {
+            PieMode::Expenses => st
+                .expenses
+                .iter()
+                .map(|f| (f.name.clone(), f.per_month_cents()))
+                .collect(),
+            PieMode::Income => st
+                .income
+                .iter()
+                .map(|f| (f.name.clone(), f.per_month_cents()))
+                .collect(),
+            PieMode::Assets => AssetKind::ALL
+                .iter()
+                .filter_map(|k| {
+                    let sum: i64 = st
+                        .assets
+                        .iter()
+                        .filter(|a| a.kind == *k)
+                        .map(|a| a.value)
+                        .sum();
+                    (sum > 0).then(|| (k.label().to_string(), sum))
+                })
+                .collect(),
+        };
+        build_pie(items)
+    };
+
+    let line_color = match *line_mode.read() {
+        LineMode::NetWorth => "#60a5fa",
+        LineMode::TakeHome => "#34d399",
+        LineMode::Future => "#a78bfa",
+    }
+    .to_string();
+
+    let line_points: Vec<(String, f64)> = {
+        let st = fin_state.read();
+        match *line_mode.read() {
+            LineMode::NetWorth => st
+                .history
+                .iter()
+                .map(|s| (fmt_short_date(s.date), s.net_worth as f64))
+                .collect(),
+            LineMode::TakeHome => st
+                .history
+                .iter()
+                .map(|s| (fmt_short_date(s.date), s.take_home() as f64))
+                .collect(),
+            LineMode::Future => {
+                let base = st.net_worth();
+                let step = st.monthly_net();
+                (0..=12)
+                    .map(|m| {
+                        let label = match m {
+                            0 => "now".to_string(),
+                            12 => "+12 mo".to_string(),
+                            _ => String::new(),
+                        };
+                        (label, (base + step * m as i64) as f64)
+                    })
+                    .collect()
+            }
+        }
+    };
 
     let on_sync = move |_| {
         scheduler.remove_by_source(EventSource::FinCalc);
@@ -255,6 +526,46 @@ fn FinCalcDetailed() -> Element {
             }
             div { class: "text-xs opacity-60",
                 "Assets {format_amount(total_assets)} − Liabilities {format_amount(total_liab)}. Income & expenses are normalized to a monthly figure by their frequency."
+            }
+
+            // ---- Charts ---------------------------------------------------
+            div { class: "grid md:grid-cols-2 gap-3",
+                div { class: "border rounded p-3",
+                    div { class: "flex items-center justify-between mb-2",
+                        h3 { class: "text-lg font-semibold", "Breakdown" }
+                        div { class: "flex gap-1",
+                            for m in PieMode::ALL {
+                                button {
+                                    key: "{m.label()}",
+                                    class: if *pie_mode.read() == m { "px-2 py-0.5 border rounded text-xs bg-neutral-700" } else { "px-2 py-0.5 border rounded text-xs" },
+                                    onclick: move |_| { let mut pm = pie_mode; pm.set(m); },
+                                    "{m.label()}"
+                                }
+                            }
+                        }
+                    }
+                    if pie_total > 0 {
+                        PieChart { slices: pie_slices }
+                    } else {
+                        div { class: "text-xs opacity-60 p-6 text-center", "Nothing with a positive value to chart yet." }
+                    }
+                }
+                div { class: "border rounded p-3",
+                    div { class: "flex items-center justify-between mb-2",
+                        h3 { class: "text-lg font-semibold", "Trend" }
+                        div { class: "flex gap-1",
+                            for m in LineMode::ALL {
+                                button {
+                                    key: "{m.label()}",
+                                    class: if *line_mode.read() == m { "px-2 py-0.5 border rounded text-xs bg-neutral-700" } else { "px-2 py-0.5 border rounded text-xs" },
+                                    onclick: move |_| { let mut lm = line_mode; lm.set(m); },
+                                    "{m.label()}"
+                                }
+                            }
+                        }
+                    }
+                    LineChart { points: line_points, color: line_color }
+                }
             }
 
             // ---- Assets ---------------------------------------------------
@@ -581,6 +892,7 @@ fn FinCalcDetailed() -> Element {
                     },
                     "Save now"
                 }
+                button { class: "px-3 py-1 border rounded", onclick: move |_| { fin_state.write().record_snapshot(); mark_dirty.call(()); }, "Record point" }
                 button { class: "px-3 py-1 border rounded", onclick: on_sync, "Sync to calendar" }
             }
 
